@@ -42,24 +42,20 @@ const prevTrackBtn = document.getElementById('prevTrackBtn');
 const nextTrackBtn = document.getElementById('nextTrackBtn');
 const volumeControl = document.getElementById('volume');
 const currentCover = document.getElementById('currentCover');
-const currentTrack = document.getElementById('currentTrack');
-const currentCategory = document.getElementById('currentCategory');
 const miniCurrentTrack = document.getElementById('miniCurrentTrack');
 const miniCurrentCategory = document.getElementById('miniCurrentCategory');
-const coverCarousel = document.getElementById('coverCarousel');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 
 // Initialize the app
 function initApp() {
     loadSounds();
-    setupCarousel();
     setupEventListeners();
+    updateCarouselButtons();
 }
 
-// Load sounds into the grid and carousel
+// Load sounds into the grid
 function loadSounds() {
-    // Load sound grid
     soundGrid.innerHTML = sounds.map(sound => `
         <div class="sound-card" data-sound-id="${sound.id}">
             <img src="${sound.cover}" alt="${sound.title}" loading="lazy">
@@ -67,17 +63,6 @@ function loadSounds() {
             <p>${sound.category}</p>
         </div>
     `).join('');
-
-    // Load carousel
-    coverCarousel.innerHTML = sounds.map(sound => `
-        <img src="${sound.cover}" alt="${sound.title}" data-sound-id="${sound.id}">
-    `).join('');
-}
-
-// Setup carousel
-function setupCarousel() {
-    const carouselWidth = coverCarousel.offsetWidth;
-    coverCarousel.style.width = `${carouselWidth * sounds.length}px`;
 }
 
 // Setup event listeners
@@ -91,26 +76,27 @@ function setupEventListeners() {
             if (index !== -1) {
                 currentSoundIndex = index;
                 playSound(soundId);
-                updateCarousel();
             }
         }
     });
 
     // Carousel navigation
     prevBtn.addEventListener('click', () => {
-        if (currentSoundIndex > 0) {
-            currentSoundIndex--;
-            updateCarousel();
-            playSound(sounds[currentSoundIndex].id);
-        }
+        const cardWidth = soundGrid.querySelector('.sound-card').offsetWidth;
+        const gap = 20; // Same as CSS gap
+        soundGrid.scrollBy({
+            left: -(cardWidth + gap),
+            behavior: 'smooth'
+        });
     });
 
     nextBtn.addEventListener('click', () => {
-        if (currentSoundIndex < sounds.length - 1) {
-            currentSoundIndex++;
-            updateCarousel();
-            playSound(sounds[currentSoundIndex].id);
-        }
+        const cardWidth = soundGrid.querySelector('.sound-card').offsetWidth;
+        const gap = 20; // Same as CSS gap
+        soundGrid.scrollBy({
+            left: cardWidth + gap,
+            behavior: 'smooth'
+        });
     });
 
     // Play/Pause button
@@ -121,7 +107,7 @@ function setupEventListeners() {
         if (currentSoundIndex > 0) {
             currentSoundIndex--;
             playSound(sounds[currentSoundIndex].id);
-            updateCarousel();
+            scrollToCurrentCard();
         }
     });
 
@@ -129,7 +115,7 @@ function setupEventListeners() {
         if (currentSoundIndex < sounds.length - 1) {
             currentSoundIndex++;
             playSound(sounds[currentSoundIndex].id);
-            updateCarousel();
+            scrollToCurrentCard();
         }
     });
 
@@ -140,14 +126,37 @@ function setupEventListeners() {
         }
     });
 
+    // Handle scroll end to update carousel buttons
+    soundGrid.addEventListener('scroll', () => {
+        updateCarouselButtons();
+    });
+
     // Handle window resize
-    window.addEventListener('resize', setupCarousel);
+    window.addEventListener('resize', () => {
+        updateCarouselButtons();
+    });
 }
 
-// Update carousel position
-function updateCarousel() {
-    const carouselWidth = coverCarousel.offsetWidth / sounds.length;
-    coverCarousel.style.transform = `translateX(-${currentSoundIndex * carouselWidth}px)`;
+// Update carousel navigation buttons visibility
+function updateCarouselButtons() {
+    const isAtStart = soundGrid.scrollLeft <= 0;
+    const isAtEnd = soundGrid.scrollLeft + soundGrid.clientWidth >= soundGrid.scrollWidth - 10; // 10px buffer
+
+    prevBtn.style.opacity = isAtStart ? '0.5' : '1';
+    prevBtn.style.pointerEvents = isAtStart ? 'none' : 'auto';
+
+    nextBtn.style.opacity = isAtEnd ? '0.5' : '1';
+    nextBtn.style.pointerEvents = isAtEnd ? 'none' : 'auto';
+}
+
+// Scroll to the current card
+function scrollToCurrentCard() {
+    const cardWidth = soundGrid.querySelector('.sound-card').offsetWidth;
+    const gap = 20; // Same as CSS gap
+    soundGrid.scrollTo({
+        left: currentSoundIndex * (cardWidth + gap),
+        behavior: 'smooth'
+    });
 }
 
 // Play a sound
@@ -169,8 +178,6 @@ function playSound(soundId) {
 
     // Update UI
     currentCover.src = sound.cover;
-    currentTrack.textContent = sound.title;
-    currentCategory.textContent = sound.category;
     miniCurrentTrack.textContent = sound.title;
     miniCurrentCategory.textContent = sound.category;
     updatePlayPauseButton(true);
