@@ -50,6 +50,11 @@ const miniCurrentTrack = document.getElementById('miniCurrentTrack');
 const miniCurrentCategory = document.getElementById('miniCurrentCategory');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
+const carouselWrapper = document.querySelector('.carousel-wrapper');
+const carouselIndicators = document.querySelector('.carousel-indicators');
+const playBtn = document.querySelector('.play-btn');
+const miniPlayer = document.querySelector('.mini-player');
+const miniTrackInfo = document.querySelector('.mini-track-info');
 
 // Initialize the app
 function initApp() {
@@ -57,6 +62,7 @@ function initApp() {
     setupEventListeners();
     updateCarouselButtons();
     updateVolumeIcon();
+    initializeCarousel();
 }
 
 // Load sounds into the grid
@@ -270,6 +276,60 @@ function togglePlayPause() {
 function updatePlayPauseButton(playing) {
     const playIcon = playPauseBtn.querySelector('.play-icon');
     playIcon.textContent = playing ? '⏸' : '▶';
+}
+
+// Initialize carousel
+function initializeCarousel() {
+    // Create sound cards
+    const sounds = [
+        { title: 'White Noise', category: 'Ambient', image: 'white-noise.jpg' },
+        { title: 'Rain', category: 'Nature', image: 'rain.jpg' },
+        { title: 'Ocean Waves', category: 'Nature', image: 'ocean.jpg' },
+        { title: 'Lullaby', category: 'Music', image: 'lullaby.jpg' },
+        { title: 'Heartbeat', category: 'Ambient', image: 'heartbeat.jpg' }
+    ];
+
+    sounds.forEach((sound, index) => {
+        const card = createSoundCard(sound, index);
+        carouselWrapper.appendChild(card);
+        soundCards.push(card);
+
+        // Create indicator
+        const indicator = document.createElement('div');
+        indicator.className = 'indicator';
+        indicator.addEventListener('click', () => goToSlide(index));
+        carouselIndicators.appendChild(indicator);
+    });
+
+    updateIndicators();
+}
+
+function createSoundCard(sound, index) {
+    const card = document.createElement('div');
+    card.className = 'sound-card';
+    card.innerHTML = `
+        <img src="images/${sound.image}" alt="${sound.title}">
+        <div class="sound-card-info">
+            <h3>${sound.title}</h3>
+            <p>${sound.category}</p>
+        </div>
+    `;
+    card.addEventListener('click', () => playSound(sound, index));
+    return card;
+}
+
+function updateIndicators() {
+    const indicators = document.querySelectorAll('.indicator');
+    indicators.forEach((indicator, index) => {
+        indicator.classList.toggle('active', index === currentSoundIndex);
+    });
+}
+
+function goToSlide(index) {
+    currentSoundIndex = index;
+    const offset = -index * 100;
+    carouselWrapper.style.transform = `translateX(${offset}%)`;
+    updateIndicators();
 }
 
 // Initialize the app when the DOM is loaded

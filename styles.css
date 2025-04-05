@@ -1,11 +1,11 @@
 :root {
-    --primary-color: #f8e5e5;
-    --secondary-color: #e6b3b3;
-    --accent-color: #ff9999;
-    --text-color: #4a4a4a;
-    --background-color: #fff5f5;
+    --primary-color: #F8B2AD;
+    --secondary-color: #C59472;
+    --accent-color: #C14E4B;
+    --text-color: #514B3D;
+    --background-color: #FBF0ED;
     --card-background: #ffffff;
-    --shadow-color: rgba(0, 0, 0, 0.1);
+    --shadow-color: rgba(17, 15, 18, 0.1);
     --player-height: 80px;
 }
 
@@ -45,84 +45,94 @@ h1 {
     font-size: 1.1rem;
 }
 
-/* Sound Carousel Styles */
-.sound-carousel-container {
+/* Carousel Styles */
+.carousel-container {
     position: relative;
     width: 100%;
     margin-bottom: 2rem;
-    display: flex;
-    align-items: center;
+    overflow: hidden;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px var(--shadow-color);
 }
 
-.sound-grid {
+.carousel-wrapper {
     display: flex;
-    overflow-x: hidden;
-    scroll-behavior: smooth;
-    gap: 20px;
-    padding: 10px 0;
-    width: 100%;
+    transition: transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+    height: 400px;
 }
 
 .sound-card {
-    background: var(--card-background);
-    border-radius: 20px;
-    padding: 15px;
-    box-shadow: 0 4px 6px var(--shadow-color);
-    transition: transform 0.2s ease;
+    flex: 0 0 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
     cursor: pointer;
-    flex: 0 0 250px;
+    transition: transform 0.3s ease;
 }
 
 .sound-card:hover {
-    transform: translateY(-5px);
+    transform: scale(1.02);
 }
 
 .sound-card img {
     width: 100%;
-    height: 200px;
+    height: 100%;
     object-fit: cover;
-    border-radius: 15px;
-    margin-bottom: 10px;
+    transition: transform 0.5s ease;
+}
+
+.sound-card:hover img {
+    transform: scale(1.05);
+}
+
+.sound-card-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+    color: white;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+}
+
+.sound-card:hover .sound-card-info {
+    transform: translateY(0);
 }
 
 .sound-card h3 {
-    color: var(--text-color);
+    font-size: 1.5rem;
     margin-bottom: 5px;
 }
 
 .sound-card p {
-    color: var(--secondary-color);
-    font-size: 0.9rem;
+    font-size: 1rem;
+    opacity: 0.8;
 }
 
-.carousel-btn {
-    background: var(--card-background);
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
-    cursor: pointer;
+.carousel-indicators {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-color);
-    transition: background-color 0.2s ease;
-    box-shadow: 0 2px 4px var(--shadow-color);
+    gap: 10px;
     z-index: 10;
-    flex-shrink: 0;
 }
 
-.carousel-btn:hover {
-    background: var(--primary-color);
+.indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
-#prevBtn {
-    margin-right: 10px;
-}
-
-#nextBtn {
-    margin-left: 10px;
+.indicator.active {
+    background-color: white;
+    transform: scale(1.2);
 }
 
 /* Fixed Player Styles */
@@ -248,8 +258,8 @@ h1 {
         font-size: 2rem;
     }
 
-    .sound-card {
-        flex: 0 0 200px;
+    .carousel-wrapper {
+        height: 300px;
     }
 
     .fixed-player {
