@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help Me Make My Baby Sleep</title>
+    <meta name="description" content="A soothing app for baby sleep sounds">
+    <meta name="theme-color" content="#f8e5e5">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/images/icon-192x192.png">
+    <link rel="icon" type="image/png" href="assets/images/icon-192x192.png">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Baby Sleep Sounds</h1>
+            <p class="subtitle">Soothing sounds for peaceful sleep</p>
+        </header>
+
+        <main>
+            <div class="sound-grid" id="soundGrid">
+                <!-- Sound cards will be dynamically inserted here -->
+            </div>
+
+            <div class="player-controls">
+                <div class="now-playing">
+                    <img id="currentCover" src="assets/images/default-cover.png" alt="Current sound cover">
+                    <div class="track-info">
+                        <h2 id="currentTrack">Select a sound</h2>
+                        <p id="currentCategory">Category</p>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button id="playPauseBtn" class="control-btn" aria-label="Play/Pause">
+                        <span class="play-icon">▶</span>
+                    </button>
+                    <div class="volume-control">
+                        <label for="volume">Volume</label>
+                        <input type="range" id="volume" min="0" max="100" value="50">
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Made with ❤️ for peaceful sleep</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => console.log('ServiceWorker registered'))
+                    .catch(err => console.log('ServiceWorker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html> 

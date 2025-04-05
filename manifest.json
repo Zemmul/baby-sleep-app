@@ -1,0 +1,23 @@
+{
+    "name": "Help Me Make My Baby Sleep",
+    "short_name": "Baby Sleep",
+    "description": "A soothing app for baby sleep sounds",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#fff5f5",
+    "theme_color": "#f8e5e5",
+    "icons": [
+        {
+            "src": "assets/images/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "assets/images/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+} 
