@@ -1,50 +1,51 @@
-# Help Me Make My Baby Sleep
+# Baby Sleep & Rhyme Time
 
-A beautiful, baby-friendly Progressive Web App (PWA) that plays soothing sounds to help babies sleep. Inspired by Spotify and Winamp, but designed with a soft, calming aesthetic perfect for babies.
+A soothing web application designed to help babies sleep peacefully and enjoy fun rhyme time videos.
 
 ## Features
 
-- 🎵 Multiple soothing sounds (white noise, rain, lullabies, ocean waves)
-- 📱 Responsive, mobile-first design
-- 🌙 Beautiful, baby-friendly UI with pastel colors
-- 📲 Installable as a PWA
-- 🔄 Offline capable
-- 🔊 Volume control
-- 🎨 Easy to customize sounds and cover art
+- **Sleep Sounds**: A collection of soothing sounds to help babies sleep peacefully
+  - White Noise
+  - Gentle Rain
+  - Coffee Shop Ambience
+  - Ocean Waves
+
+- **Baby Rhyme Time**: Fun videos from Wyndham Libraries Online Baby Time
+  - Interactive video player
+  - Playlist of baby-friendly videos
+  - Auto-play functionality
+
+## Design
+
+The app features a modern, calming design inspired by meditation apps with:
+- Warm, earthy color palette
+- Gradient backgrounds
+- Smooth animations and transitions
+- Responsive layout for all devices
+
+## Technical Details
+
+- **Frontend**: HTML, CSS, JavaScript
+- **Audio**: HTML5 Audio API
+- **Video**: YouTube IFrame API
+- **Progressive Web App**: Works offline and can be installed on devices
 
 ## Getting Started
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/baby-sleep-app.git
-```
+1. Clone the repository
+2. Add your audio files to the `assets/audio` directory
+3. Add your images to the `assets/images` directory
+4. Open `index.html` in your browser
 
-2. Open `index.html` in your browser or deploy to your preferred hosting service.
+## Assets Required
 
-## Customization
+- Audio files (MP3 format)
+- Cover images for each sound
+- Hero image for the home page
+- App icon
 
-To add or modify sounds, edit the `sounds` array in `app.js`:
-
-```javascript
-const sounds = [
-    {
-        id: 'your-sound-id',
-        title: 'Your Sound Title',
-        category: 'Category',
-        cover: 'path/to/cover.jpg',
-        audio: 'path/to/audio.mp3'
-    }
-];
-```
-
-## Deployment
-
-This app can be deployed to any static hosting service like:
-- GitHub Pages
-- Vercel
-- Netlify
-- Firebase Hosting
+See the README files in the assets directories for more details.
 
 ## License
 
-MIT License - feel free to use this project for your own baby sleep app! 
+This project is licensed under the MIT License - see the LICENSE file for details. 

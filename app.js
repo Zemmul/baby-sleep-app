@@ -1,276 +1,176 @@
-// Sound configuration
+// Sound data
 const sounds = [
     {
-        id: 'white-noise',
-        title: 'White Noise',
-        category: 'Ambient',
-        cover: 'assets/images/white-noise.jpg',
-        audio: 'assets/audio/white-noise.mp3'
-    },
-    {
-        id: 'rain',
-        title: 'Gentle Rain',
-        category: 'Nature',
+        title: 'Rain',
+        description: 'Gentle rain sounds to soothe your baby',
         cover: 'assets/images/rain.jpg',
         audio: 'assets/audio/rain.mp3'
     },
     {
-        id: 'coffee-shop',
-        title: 'Coffee Shop',
-        category: 'Ambient',
-        cover: 'assets/images/coffee-shop.jpg',
-        audio: 'assets/audio/coffee-shop.mp3'
-    },
-    {
-        id: 'ocean',
-        title: 'Ocean Waves',
-        category: 'Nature',
+        title: 'Ocean',
+        description: 'Calming ocean waves for peaceful sleep',
         cover: 'assets/images/ocean.jpg',
         audio: 'assets/audio/ocean.mp3'
+    },
+    {
+        title: 'White Noise',
+        description: 'Soft white noise to block out distractions',
+        cover: 'assets/images/white-noise.jpg',
+        audio: 'assets/audio/white-noise.mp3'
+    },
+    {
+        title: 'Coffee Shop',
+        description: 'Ambient cafe sounds for a cozy atmosphere',
+        cover: 'assets/images/coffee-shop.jpg',
+        audio: 'assets/audio/coffee-shop.mp3'
     }
 ];
 
-// Audio player state
-let currentAudio = null;
-let isPlaying = false;
-let currentSoundIndex = 0;
-let isMuted = false;
-let previousVolume = 50;
-
 // DOM Elements
-const soundGrid = document.getElementById('soundGrid');
-const playPauseBtn = document.getElementById('playPauseBtn');
-const prevTrackBtn = document.getElementById('prevTrackBtn');
-const nextTrackBtn = document.getElementById('nextTrackBtn');
-const volumeControl = document.getElementById('volume');
-const volumeBtn = document.getElementById('volumeBtn');
-const volumeIcon = document.querySelector('.volume-icon');
-const currentCover = document.getElementById('currentCover');
-const miniCurrentTrack = document.getElementById('miniCurrentTrack');
-const miniCurrentCategory = document.getElementById('miniCurrentCategory');
-const prevBtn = document.getElementById('prevBtn');
-const nextBtn = document.getElementById('nextBtn');
+let soundGrid;
+let volumeSlider;
+let volumeToggle;
+let currentAudio = null;
+let activeCard = null;
+let previousVolume = 50;
+let isMuted = false;
 
 // Initialize the app
-function initApp() {
-    loadSounds();
-    setupEventListeners();
-    updateCarouselButtons();
-    updateVolumeIcon();
-}
-
-// Load sounds into the grid
-function loadSounds() {
-    soundGrid.innerHTML = sounds.map(sound => `
-        <div class="sound-card" data-sound-id="${sound.id}">
-            <img src="${sound.cover}" alt="${sound.title}" loading="lazy">
-            <h3>${sound.title}</h3>
-            <p>${sound.category}</p>
-        </div>
-    `).join('');
-}
-
-// Setup event listeners
-function setupEventListeners() {
-    // Sound card click
-    soundGrid.addEventListener('click', (e) => {
-        const soundCard = e.target.closest('.sound-card');
-        if (soundCard) {
-            const soundId = soundCard.dataset.soundId;
-            const index = sounds.findIndex(s => s.id === soundId);
-            if (index !== -1) {
-                currentSoundIndex = index;
-                playSound(soundId);
-            }
-        }
-    });
-
-    // Carousel navigation
-    prevBtn.addEventListener('click', () => {
-        const cardWidth = soundGrid.querySelector('.sound-card').offsetWidth;
-        const gap = 20; // Same as CSS gap
-        
-        // Check if we're at the beginning
-        if (soundGrid.scrollLeft <= 0) {
-            // If at the beginning, scroll to the end
-            soundGrid.scrollTo({
-                left: soundGrid.scrollWidth - soundGrid.clientWidth,
-                behavior: 'smooth'
-            });
-        } else {
-            // Otherwise, scroll left by one card
-            soundGrid.scrollBy({
-                left: -(cardWidth + gap),
-                behavior: 'smooth'
-            });
-        }
-    });
-
-    nextBtn.addEventListener('click', () => {
-        const cardWidth = soundGrid.querySelector('.sound-card').offsetWidth;
-        const gap = 20; // Same as CSS gap
-        
-        // Check if we're at the end
-        if (soundGrid.scrollLeft + soundGrid.clientWidth >= soundGrid.scrollWidth - 10) {
-            // If at the end, scroll to the beginning
-            soundGrid.scrollTo({
-                left: 0,
-                behavior: 'smooth'
-            });
-        } else {
-            // Otherwise, scroll right by one card
-            soundGrid.scrollBy({
-                left: cardWidth + gap,
-                behavior: 'smooth'
-            });
-        }
-    });
-
-    // Play/Pause button
-    playPauseBtn.addEventListener('click', togglePlayPause);
-
-    // Previous/Next track buttons
-    prevTrackBtn.addEventListener('click', () => {
-        if (currentSoundIndex > 0) {
-            currentSoundIndex--;
-        } else {
-            // Loop to the last track
-            currentSoundIndex = sounds.length - 1;
-        }
-        playSound(sounds[currentSoundIndex].id);
-        scrollToCurrentCard();
-    });
-
-    nextTrackBtn.addEventListener('click', () => {
-        if (currentSoundIndex < sounds.length - 1) {
-            currentSoundIndex++;
-        } else {
-            // Loop to the first track
-            currentSoundIndex = 0;
-        }
-        playSound(sounds[currentSoundIndex].id);
-        scrollToCurrentCard();
-    });
-
-    // Volume control
-    volumeControl.addEventListener('input', (e) => {
+function init() {
+    soundGrid = document.getElementById('soundGrid');
+    volumeSlider = document.getElementById('volumeSlider');
+    volumeToggle = document.getElementById('volumeToggle');
+    
+    // Create sound cards
+    createSoundCards();
+    
+    // Set up volume control
+    volumeSlider.addEventListener('input', (e) => {
         if (currentAudio) {
-            const volume = e.target.value / 100;
-            currentAudio.volume = volume;
+            currentAudio.volume = e.target.value / 100;
             previousVolume = e.target.value;
-            isMuted = volume === 0;
+            
+            // Update volume icon
             updateVolumeIcon();
         }
     });
+    
+    // Set up volume toggle
+    volumeToggle.addEventListener('click', toggleMute);
+}
 
-    // Volume button
-    volumeBtn.addEventListener('click', toggleMute);
-
-    // Handle scroll end to update carousel buttons
-    soundGrid.addEventListener('scroll', () => {
-        updateCarouselButtons();
-    });
-
-    // Handle window resize
-    window.addEventListener('resize', () => {
-        updateCarouselButtons();
+// Create sound cards
+function createSoundCards() {
+    sounds.forEach((sound, index) => {
+        const card = document.createElement('div');
+        card.className = 'sound-card';
+        card.setAttribute('data-index', index);
+        
+        card.innerHTML = `
+            <img src="${sound.cover}" alt="${sound.title}" class="sound-card-image">
+            <div class="sound-card-content">
+                <h3>${sound.title}</h3>
+                <p>${sound.description}</p>
+            </div>
+            <div class="play-button">
+                <svg viewBox="0 0 24 24">
+                    <path class="play-icon" d="M8 5v14l11-7z"/>
+                </svg>
+            </div>
+        `;
+        
+        // Add click handlers
+        card.addEventListener('click', () => handleCardClick(card, sound));
+        
+        // Add play button click handler
+        const playButton = card.querySelector('.play-button');
+        playButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handlePlayButtonClick(card, sound);
+        });
+        
+        soundGrid.appendChild(card);
     });
 }
 
-// Update carousel navigation buttons visibility
-function updateCarouselButtons() {
-    // We don't need to disable the buttons anymore since we're looping
-    prevBtn.style.opacity = '1';
-    prevBtn.style.pointerEvents = 'auto';
-    nextBtn.style.opacity = '1';
-    nextBtn.style.pointerEvents = 'auto';
+// Handle card click
+function handleCardClick(card, sound) {
+    // Remove active class from previous card
+    if (activeCard) {
+        activeCard.classList.remove('active');
+    }
+    
+    // Add active class to clicked card
+    card.classList.add('active');
+    activeCard = card;
 }
 
-// Scroll to the current card
-function scrollToCurrentCard() {
-    const cardWidth = soundGrid.querySelector('.sound-card').offsetWidth;
-    const gap = 20; // Same as CSS gap
-    soundGrid.scrollTo({
-        left: currentSoundIndex * (cardWidth + gap),
-        behavior: 'smooth'
-    });
+// Handle play button click
+function handlePlayButtonClick(card, sound) {
+    // Only allow play/pause on active card
+    if (!card.classList.contains('active')) {
+        return;
+    }
+    
+    const playIcon = card.querySelector('.play-icon');
+    
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+    }
+    
+    currentAudio = new Audio(sound.audio);
+    currentAudio.volume = isMuted ? 0 : volumeSlider.value / 100;
+    
+    if (card.classList.contains('playing')) {
+        // Pause
+        card.classList.remove('playing');
+        currentAudio.pause();
+        playIcon.setAttribute('d', 'M8 5v14l11-7z'); // Play icon
+    } else {
+        // Play
+        card.classList.add('playing');
+        currentAudio.play();
+        playIcon.setAttribute('d', 'M6 19h4V5H6v14zm8-14v14h4V5h-4z'); // Pause icon
+        
+        currentAudio.addEventListener('ended', () => {
+            card.classList.remove('playing');
+            playIcon.setAttribute('d', 'M8 5v14l11-7z'); // Reset to play icon
+        });
+    }
 }
 
 // Toggle mute
 function toggleMute() {
-    if (!currentAudio) return;
-
     isMuted = !isMuted;
     
-    if (isMuted) {
-        previousVolume = volumeControl.value;
-        volumeControl.value = 0;
-        currentAudio.volume = 0;
-    } else {
-        volumeControl.value = previousVolume;
-        currentAudio.volume = previousVolume / 100;
+    if (currentAudio) {
+        currentAudio.volume = isMuted ? 0 : previousVolume / 100;
     }
     
+    // Update volume slider
+    volumeSlider.value = isMuted ? 0 : previousVolume;
+    
+    // Update volume icon
     updateVolumeIcon();
 }
 
 // Update volume icon based on volume level
 function updateVolumeIcon() {
-    const volume = volumeControl.value;
+    const volumeIcon = volumeToggle.querySelector('.volume-icon path');
+    const volume = volumeSlider.value;
     
-    if (volume === 0) {
-        volumeIcon.textContent = '🔇';
+    if (volume === 0 || isMuted) {
+        // Muted icon
+        volumeIcon.setAttribute('d', 'M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z');
     } else if (volume < 50) {
-        volumeIcon.textContent = '🔉';
+        // Low volume icon
+        volumeIcon.setAttribute('d', 'M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z');
     } else {
-        volumeIcon.textContent = '🔊';
+        // High volume icon
+        volumeIcon.setAttribute('d', 'M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z');
     }
 }
 
-// Play a sound
-function playSound(soundId) {
-    const sound = sounds.find(s => s.id === soundId);
-    if (!sound) return;
-
-    // Stop current audio if playing
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
-    }
-
-    // Create and play new audio
-    currentAudio = new Audio(sound.audio);
-    currentAudio.loop = true;
-    currentAudio.volume = volumeControl.value / 100;
-    currentAudio.play();
-
-    // Update UI
-    currentCover.src = sound.cover;
-    miniCurrentTrack.textContent = sound.title;
-    miniCurrentCategory.textContent = sound.category;
-    updatePlayPauseButton(true);
-    isPlaying = true;
-}
-
-// Toggle play/pause
-function togglePlayPause() {
-    if (!currentAudio) return;
-
-    if (isPlaying) {
-        currentAudio.pause();
-        updatePlayPauseButton(false);
-    } else {
-        currentAudio.play();
-        updatePlayPauseButton(true);
-    }
-    isPlaying = !isPlaying;
-}
-
-// Update play/pause button UI
-function updatePlayPauseButton(playing) {
-    const playIcon = playPauseBtn.querySelector('.play-icon');
-    playIcon.textContent = playing ? '⏸' : '▶';
-}
-
-// Initialize the app when the DOM is loaded
-document.addEventListener('DOMContentLoaded', initApp); 
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', init); 

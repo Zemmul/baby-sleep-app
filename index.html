@@ -3,62 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Help Me Make My Baby Sleep</title>
-    <meta name="description" content="A soothing app for baby sleep sounds">
-    <meta name="theme-color" content="#FBF0ED">
+    <meta name="description" content="Your secret to a happy baby">
+    <meta name="theme-color" content="#FFF1E6">
+    <title>Baby Sleep & Rhyme Time</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="assets/images/icon-192x192.png">
-    <link rel="icon" type="image/png" href="assets/images/icon-192x192.png">
+    <link rel="apple-touch-icon" href="assets/images/icon.svg">
+    <link rel="icon" href="assets/images/icon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 <body>
     <div class="app-container">
+        <img src="assets/images/hero-baby.svg" alt="Peaceful baby meditating" class="hero-image">
+        
         <header>
-            <h1>Baby Sleep Sounds</h1>
-            <p class="subtitle">Soothing sounds for peaceful sleep</p>
+            <h1>Your secret to a happy baby</h1>
+            <p class="subtitle">Pick and choose what you need right now</p>
+            <img src="assets/images/chevron-down.svg" alt="" class="chevron-down" aria-hidden="true">
         </header>
-
+        
         <main>
-            <div class="sound-carousel-container">
-                <button id="prevBtn" class="carousel-btn" aria-label="Previous">❮</button>
-                <div class="sound-grid" id="soundGrid">
-                    <!-- Sound cards will be dynamically inserted here -->
-                </div>
-                <button id="nextBtn" class="carousel-btn" aria-label="Next">❯</button>
+            <div class="menu-options">
+                <a href="sleep-sounds.html" class="menu-option">
+                    <div class="menu-icon">
+                        <img src="assets/images/sleep-sounds.png" alt="Sleep Sounds">
+                    </div>
+                    <h2>Sleep Sounds</h2>
+                    <p>Soothing sounds to help your baby fall asleep</p>
+                </a>
+                
+                <a href="rhyme-time.html" class="menu-option">
+                    <div class="menu-icon">
+                        <img src="assets/images/baby-time.png" alt="Baby Rhyme Time">
+                    </div>
+                    <h2>Baby Rhyme Time</h2>
+                    <p>Fun videos to watch with your baby</p>
+                </a>
             </div>
         </main>
-
-        <div class="fixed-player">
-            <div class="mini-player">
-                <img id="currentCover" src="assets/images/default-cover.png" alt="Current sound cover">
-                <div class="mini-track-info">
-                    <h3 id="miniCurrentTrack">Select a sound</h3>
-                    <p id="miniCurrentCategory">Category</p>
-                </div>
-            </div>
-            
-            <div class="player-controls">
-                <button id="prevTrackBtn" class="control-btn" aria-label="Previous">
-                    <span class="control-icon">⏮</span>
-                </button>
-                <button id="playPauseBtn" class="control-btn play-btn" aria-label="Play/Pause">
-                    <span class="play-icon">▶</span>
-                </button>
-                <button id="nextTrackBtn" class="control-btn" aria-label="Next">
-                    <span class="control-icon">⏭</span>
-                </button>
-            </div>
-
-            <div class="volume-control">
-                <button id="volumeBtn" class="control-btn volume-btn" aria-label="Volume">
-                    <span class="volume-icon">🔊</span>
-                </button>
-                <input type="range" id="volume" min="0" max="100" value="50">
-            </div>
-        </div>
     </div>
-
-    <script src="app.js"></script>
+    
     <script>
         // Register service worker
         if ('serviceWorker' in navigator) {

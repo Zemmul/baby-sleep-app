@@ -1,11 +1,11 @@
 {
-    "name": "Help Me Make My Baby Sleep",
+    "name": "Baby Sleep & Rhyme Time",
     "short_name": "Baby Sleep",
-    "description": "A soothing app for baby sleep sounds",
+    "description": "A soothing app for baby sleep sounds and rhyme time videos",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#fff5f5",
-    "theme_color": "#f8e5e5",
+    "background_color": "#FBEADA",
+    "theme_color": "#FDA964",
     "icons": [
         {
             "src": "assets/images/icon-192x192.png",
@@ -18,6 +18,25 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any maskable"
+        }
+    ],
+    "orientation": "portrait",
+    "categories": ["lifestyle", "music", "kids"],
+    "screenshots": [
+        {
+            "src": "assets/images/screenshot-home.png",
+            "sizes": "1080x1920",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/images/screenshot-sleep.png",
+            "sizes": "1080x1920",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/images/screenshot-rhyme.png",
+            "sizes": "1080x1920",
+            "type": "image/png"
         }
     ]
 } 
