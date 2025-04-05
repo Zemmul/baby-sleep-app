@@ -15,11 +15,11 @@ const sounds = [
         audio: 'assets/audio/rain.mp3'
     },
     {
-        id: 'lullaby',
-        title: 'Sweet Lullaby',
-        category: 'Music',
-        cover: 'assets/images/lullaby.jpg',
-        audio: 'assets/audio/lullaby.mp3'
+        id: 'coffee-shop',
+        title: 'Coffee Shop',
+        category: 'Ambient',
+        cover: 'assets/images/coffee-shop.jpg',
+        audio: 'assets/audio/coffee-shop.mp3'
     },
     {
         id: 'ocean',

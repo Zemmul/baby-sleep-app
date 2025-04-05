@@ -8,11 +8,11 @@ const ASSETS_TO_CACHE = [
     '/assets/images/default-cover.png',
     '/assets/images/white-noise.jpg',
     '/assets/images/rain.jpg',
-    '/assets/images/lullaby.jpg',
+    '/assets/images/coffee-shop.jpg',
     '/assets/images/ocean.jpg',
     '/assets/audio/white-noise.mp3',
     '/assets/audio/rain.mp3',
-    '/assets/audio/lullaby.mp3',
+    '/assets/audio/coffee-shop.mp3',
     '/assets/audio/ocean.mp3'
 ];
 
