@@ -26,23 +26,6 @@
                 </div>
                 <button id="nextBtn" class="carousel-btn">❯</button>
             </div>
-
-            <div class="player-section">
-                <div class="carousel-container">
-                    <div class="carousel" id="coverCarousel">
-                        <!-- Cover images will be dynamically inserted here -->
-                    </div>
-                    <div class="carousel-controls">
-                        <button id="prevBtn" class="carousel-btn">❮</button>
-                        <button id="nextBtn" class="carousel-btn">❯</button>
-                    </div>
-                </div>
-
-                <div class="track-info">
-                    <h2 id="currentTrack">Select a sound</h2>
-                    <p id="currentCategory">Category</p>
-                </div>
-            </div>
         </main>
 
         <div class="fixed-player">
@@ -67,14 +50,12 @@
             </div>
 
             <div class="volume-control">
-                <span class="volume-icon">🔊</span>
+                <button id="volumeBtn" class="control-btn volume-btn" aria-label="Volume">
+                    <span class="volume-icon">🔊</span>
+                </button>
                 <input type="range" id="volume" min="0" max="100" value="50">
             </div>
         </div>
-
-        <footer>
-            <p>Made with ❤️ for peaceful sleep</p>
-        </footer>
     </div>
 
     <script src="app.js"></script>

@@ -34,6 +34,8 @@ const sounds = [
 let currentAudio = null;
 let isPlaying = false;
 let currentSoundIndex = 0;
+let isMuted = false;
+let previousVolume = 50;
 
 // DOM Elements
 const soundGrid = document.getElementById('soundGrid');
@@ -41,6 +43,8 @@ const playPauseBtn = document.getElementById('playPauseBtn');
 const prevTrackBtn = document.getElementById('prevTrackBtn');
 const nextTrackBtn = document.getElementById('nextTrackBtn');
 const volumeControl = document.getElementById('volume');
+const volumeBtn = document.getElementById('volumeBtn');
+const volumeIcon = document.querySelector('.volume-icon');
 const currentCover = document.getElementById('currentCover');
 const miniCurrentTrack = document.getElementById('miniCurrentTrack');
 const miniCurrentCategory = document.getElementById('miniCurrentCategory');
@@ -52,6 +56,7 @@ function initApp() {
     loadSounds();
     setupEventListeners();
     updateCarouselButtons();
+    updateVolumeIcon();
 }
 
 // Load sounds into the grid
@@ -84,19 +89,41 @@ function setupEventListeners() {
     prevBtn.addEventListener('click', () => {
         const cardWidth = soundGrid.querySelector('.sound-card').offsetWidth;
         const gap = 20; // Same as CSS gap
-        soundGrid.scrollBy({
-            left: -(cardWidth + gap),
-            behavior: 'smooth'
-        });
+        
+        // Check if we're at the beginning
+        if (soundGrid.scrollLeft <= 0) {
+            // If at the beginning, scroll to the end
+            soundGrid.scrollTo({
+                left: soundGrid.scrollWidth - soundGrid.clientWidth,
+                behavior: 'smooth'
+            });
+        } else {
+            // Otherwise, scroll left by one card
+            soundGrid.scrollBy({
+                left: -(cardWidth + gap),
+                behavior: 'smooth'
+            });
+        }
     });
 
     nextBtn.addEventListener('click', () => {
         const cardWidth = soundGrid.querySelector('.sound-card').offsetWidth;
         const gap = 20; // Same as CSS gap
-        soundGrid.scrollBy({
-            left: cardWidth + gap,
-            behavior: 'smooth'
-        });
+        
+        // Check if we're at the end
+        if (soundGrid.scrollLeft + soundGrid.clientWidth >= soundGrid.scrollWidth - 10) {
+            // If at the end, scroll to the beginning
+            soundGrid.scrollTo({
+                left: 0,
+                behavior: 'smooth'
+            });
+        } else {
+            // Otherwise, scroll right by one card
+            soundGrid.scrollBy({
+                left: cardWidth + gap,
+                behavior: 'smooth'
+            });
+        }
     });
 
     // Play/Pause button
@@ -106,25 +133,38 @@ function setupEventListeners() {
     prevTrackBtn.addEventListener('click', () => {
         if (currentSoundIndex > 0) {
             currentSoundIndex--;
-            playSound(sounds[currentSoundIndex].id);
-            scrollToCurrentCard();
+        } else {
+            // Loop to the last track
+            currentSoundIndex = sounds.length - 1;
         }
+        playSound(sounds[currentSoundIndex].id);
+        scrollToCurrentCard();
     });
 
     nextTrackBtn.addEventListener('click', () => {
         if (currentSoundIndex < sounds.length - 1) {
             currentSoundIndex++;
-            playSound(sounds[currentSoundIndex].id);
-            scrollToCurrentCard();
+        } else {
+            // Loop to the first track
+            currentSoundIndex = 0;
         }
+        playSound(sounds[currentSoundIndex].id);
+        scrollToCurrentCard();
     });
 
     // Volume control
     volumeControl.addEventListener('input', (e) => {
         if (currentAudio) {
-            currentAudio.volume = e.target.value / 100;
+            const volume = e.target.value / 100;
+            currentAudio.volume = volume;
+            previousVolume = e.target.value;
+            isMuted = volume === 0;
+            updateVolumeIcon();
         }
     });
+
+    // Volume button
+    volumeBtn.addEventListener('click', toggleMute);
 
     // Handle scroll end to update carousel buttons
     soundGrid.addEventListener('scroll', () => {
@@ -139,14 +179,11 @@ function setupEventListeners() {
 
 // Update carousel navigation buttons visibility
 function updateCarouselButtons() {
-    const isAtStart = soundGrid.scrollLeft <= 0;
-    const isAtEnd = soundGrid.scrollLeft + soundGrid.clientWidth >= soundGrid.scrollWidth - 10; // 10px buffer
-
-    prevBtn.style.opacity = isAtStart ? '0.5' : '1';
-    prevBtn.style.pointerEvents = isAtStart ? 'none' : 'auto';
-
-    nextBtn.style.opacity = isAtEnd ? '0.5' : '1';
-    nextBtn.style.pointerEvents = isAtEnd ? 'none' : 'auto';
+    // We don't need to disable the buttons anymore since we're looping
+    prevBtn.style.opacity = '1';
+    prevBtn.style.pointerEvents = 'auto';
+    nextBtn.style.opacity = '1';
+    nextBtn.style.pointerEvents = 'auto';
 }
 
 // Scroll to the current card
@@ -157,6 +194,37 @@ function scrollToCurrentCard() {
         left: currentSoundIndex * (cardWidth + gap),
         behavior: 'smooth'
     });
+}
+
+// Toggle mute
+function toggleMute() {
+    if (!currentAudio) return;
+
+    isMuted = !isMuted;
+    
+    if (isMuted) {
+        previousVolume = volumeControl.value;
+        volumeControl.value = 0;
+        currentAudio.volume = 0;
+    } else {
+        volumeControl.value = previousVolume;
+        currentAudio.volume = previousVolume / 100;
+    }
+    
+    updateVolumeIcon();
+}
+
+// Update volume icon based on volume level
+function updateVolumeIcon() {
+    const volume = volumeControl.value;
+    
+    if (volume === 0) {
+        volumeIcon.textContent = '🔇';
+    } else if (volume < 50) {
+        volumeIcon.textContent = '🔉';
+    } else {
+        volumeIcon.textContent = '🔊';
+    }
 }
 
 // Play a sound

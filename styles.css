@@ -194,7 +194,7 @@ h1 {
     background: var(--primary-color);
 }
 
-.play-btn {
+.play-btn, .volume-btn {
     background: var(--accent-color);
     color: white;
     width: 40px;
@@ -204,7 +204,7 @@ h1 {
     justify-content: center;
 }
 
-.play-btn:hover {
+.play-btn:hover, .volume-btn:hover {
     transform: scale(1.1);
 }
 
@@ -217,7 +217,7 @@ h1 {
 
 .volume-icon {
     font-size: 1.2rem;
-    color: var(--text-color);
+    color: white;
 }
 
 .volume-control input[type="range"] {
