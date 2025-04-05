@@ -33,23 +33,33 @@ const sounds = [
 // Audio player state
 let currentAudio = null;
 let isPlaying = false;
+let currentSoundIndex = 0;
 
 // DOM Elements
 const soundGrid = document.getElementById('soundGrid');
 const playPauseBtn = document.getElementById('playPauseBtn');
+const prevTrackBtn = document.getElementById('prevTrackBtn');
+const nextTrackBtn = document.getElementById('nextTrackBtn');
 const volumeControl = document.getElementById('volume');
 const currentCover = document.getElementById('currentCover');
 const currentTrack = document.getElementById('currentTrack');
 const currentCategory = document.getElementById('currentCategory');
+const miniCurrentTrack = document.getElementById('miniCurrentTrack');
+const miniCurrentCategory = document.getElementById('miniCurrentCategory');
+const coverCarousel = document.getElementById('coverCarousel');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
 
 // Initialize the app
 function initApp() {
     loadSounds();
+    setupCarousel();
     setupEventListeners();
 }
 
-// Load sounds into the grid
+// Load sounds into the grid and carousel
 function loadSounds() {
+    // Load sound grid
     soundGrid.innerHTML = sounds.map(sound => `
         <div class="sound-card" data-sound-id="${sound.id}">
             <img src="${sound.cover}" alt="${sound.title}" loading="lazy">
@@ -57,6 +67,17 @@ function loadSounds() {
             <p>${sound.category}</p>
         </div>
     `).join('');
+
+    // Load carousel
+    coverCarousel.innerHTML = sounds.map(sound => `
+        <img src="${sound.cover}" alt="${sound.title}" data-sound-id="${sound.id}">
+    `).join('');
+}
+
+// Setup carousel
+function setupCarousel() {
+    const carouselWidth = coverCarousel.offsetWidth;
+    coverCarousel.style.width = `${carouselWidth * sounds.length}px`;
 }
 
 // Setup event listeners
@@ -66,12 +87,51 @@ function setupEventListeners() {
         const soundCard = e.target.closest('.sound-card');
         if (soundCard) {
             const soundId = soundCard.dataset.soundId;
-            playSound(soundId);
+            const index = sounds.findIndex(s => s.id === soundId);
+            if (index !== -1) {
+                currentSoundIndex = index;
+                playSound(soundId);
+                updateCarousel();
+            }
+        }
+    });
+
+    // Carousel navigation
+    prevBtn.addEventListener('click', () => {
+        if (currentSoundIndex > 0) {
+            currentSoundIndex--;
+            updateCarousel();
+            playSound(sounds[currentSoundIndex].id);
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        if (currentSoundIndex < sounds.length - 1) {
+            currentSoundIndex++;
+            updateCarousel();
+            playSound(sounds[currentSoundIndex].id);
         }
     });
 
     // Play/Pause button
     playPauseBtn.addEventListener('click', togglePlayPause);
+
+    // Previous/Next track buttons
+    prevTrackBtn.addEventListener('click', () => {
+        if (currentSoundIndex > 0) {
+            currentSoundIndex--;
+            playSound(sounds[currentSoundIndex].id);
+            updateCarousel();
+        }
+    });
+
+    nextTrackBtn.addEventListener('click', () => {
+        if (currentSoundIndex < sounds.length - 1) {
+            currentSoundIndex++;
+            playSound(sounds[currentSoundIndex].id);
+            updateCarousel();
+        }
+    });
 
     // Volume control
     volumeControl.addEventListener('input', (e) => {
@@ -79,6 +139,15 @@ function setupEventListeners() {
             currentAudio.volume = e.target.value / 100;
         }
     });
+
+    // Handle window resize
+    window.addEventListener('resize', setupCarousel);
+}
+
+// Update carousel position
+function updateCarousel() {
+    const carouselWidth = coverCarousel.offsetWidth / sounds.length;
+    coverCarousel.style.transform = `translateX(-${currentSoundIndex * carouselWidth}px)`;
 }
 
 // Play a sound
@@ -102,6 +171,8 @@ function playSound(soundId) {
     currentCover.src = sound.cover;
     currentTrack.textContent = sound.title;
     currentCategory.textContent = sound.category;
+    miniCurrentTrack.textContent = sound.title;
+    miniCurrentCategory.textContent = sound.category;
     updatePlayPauseButton(true);
     isPlaying = true;
 }

@@ -23,26 +23,50 @@
                 <!-- Sound cards will be dynamically inserted here -->
             </div>
 
-            <div class="player-controls">
-                <div class="now-playing">
-                    <img id="currentCover" src="assets/images/default-cover.png" alt="Current sound cover">
-                    <div class="track-info">
-                        <h2 id="currentTrack">Select a sound</h2>
-                        <p id="currentCategory">Category</p>
+            <div class="player-section">
+                <div class="carousel-container">
+                    <div class="carousel" id="coverCarousel">
+                        <!-- Cover images will be dynamically inserted here -->
+                    </div>
+                    <div class="carousel-controls">
+                        <button id="prevBtn" class="carousel-btn">❮</button>
+                        <button id="nextBtn" class="carousel-btn">❯</button>
                     </div>
                 </div>
-                
-                <div class="controls">
-                    <button id="playPauseBtn" class="control-btn" aria-label="Play/Pause">
-                        <span class="play-icon">▶</span>
-                    </button>
-                    <div class="volume-control">
-                        <label for="volume">Volume</label>
-                        <input type="range" id="volume" min="0" max="100" value="50">
-                    </div>
+
+                <div class="track-info">
+                    <h2 id="currentTrack">Select a sound</h2>
+                    <p id="currentCategory">Category</p>
                 </div>
             </div>
         </main>
+
+        <div class="fixed-player">
+            <div class="mini-player">
+                <img id="currentCover" src="assets/images/default-cover.png" alt="Current sound cover">
+                <div class="mini-track-info">
+                    <h3 id="miniCurrentTrack">Select a sound</h3>
+                    <p id="miniCurrentCategory">Category</p>
+                </div>
+            </div>
+            
+            <div class="player-controls">
+                <button id="prevTrackBtn" class="control-btn" aria-label="Previous">
+                    <span class="control-icon">⏮</span>
+                </button>
+                <button id="playPauseBtn" class="control-btn play-btn" aria-label="Play/Pause">
+                    <span class="play-icon">▶</span>
+                </button>
+                <button id="nextTrackBtn" class="control-btn" aria-label="Next">
+                    <span class="control-icon">⏭</span>
+                </button>
+            </div>
+
+            <div class="volume-control">
+                <span class="volume-icon">🔊</span>
+                <input type="range" id="volume" min="0" max="100" value="50">
+            </div>
+        </div>
 
         <footer>
             <p>Made with ❤️ for peaceful sleep</p>
