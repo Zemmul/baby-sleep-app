@@ -464,7 +464,7 @@ header .subtitle {
     }
 
     h1 {
-        font-size: 2rem;
+        font-size: 1.8rem;
         padding: 0 var(--spacing-md);
     }
 
@@ -474,28 +474,40 @@ header .subtitle {
     }
 
     .hero-image {
-        max-width: 300px;
+        max-width: 250px;
+        margin-bottom: var(--spacing-xs);
     }
 
     .menu-options {
-        flex-direction: column;
+        flex-direction: row;
+        gap: var(--spacing-sm);
+        margin-top: var(--spacing-xs);
     }
     
     .menu-option {
-        max-width: 100%;
+        max-width: 50%;
+        padding: var(--spacing-xs);
     }
 
     .menu-icon {
-        width: 240px;
-        height: 160px;
+        width: 120px;
+        height: 80px;
+        margin-bottom: var(--spacing-xs);
     }
 
     .menu-option h2 {
-        font-size: 1.5rem;
+        font-size: 1rem;
+        margin-bottom: 0;
     }
 
     .menu-option p {
-        font-size: 1rem;
+        font-size: 0.8rem;
+    }
+
+    .chevron-down {
+        margin: var(--spacing-xs) auto 0;
+        width: 24px;
+        height: 24px;
     }
 
     .sound-card {
