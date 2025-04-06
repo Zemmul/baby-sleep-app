@@ -51,6 +51,7 @@ h1 {
     font-size: 2.5rem;
     margin-bottom: var(--spacing-sm);
     text-align: center;
+    line-height: 1.2;
 }
 
 .subtitle {
@@ -97,7 +98,7 @@ h1 {
 /* Header styles */
 header {
     text-align: center;
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: 0;
     padding: 0 var(--spacing-md);
     padding-top: 0;
 }
@@ -456,6 +457,7 @@ header .subtitle {
 @media (max-width: 768px) {
     header {
         padding-top: 0;
+        margin-bottom: 0;
     }
 
     .back-button {
@@ -466,6 +468,7 @@ header .subtitle {
     h1 {
         font-size: 1.8rem;
         padding: 0 var(--spacing-md);
+        line-height: 1.1;
     }
 
     .subtitle {
@@ -474,7 +477,7 @@ header .subtitle {
     }
 
     .hero-image {
-        max-width: 250px;
+        max-width: 180px;
         margin-bottom: var(--spacing-xs);
     }
 
