@@ -24,8 +24,6 @@
         </header>
         
         <main>
-            <div id="soundGrid" class="sound-grid"></div>
-            
             <div class="volume-control">
                 <button id="volumeToggle" class="volume-toggle" aria-label="Toggle volume">
                     <svg viewBox="0 0 24 24" class="volume-icon">
@@ -33,6 +31,24 @@
                     </svg>
                 </button>
                 <input type="range" id="volumeSlider" min="0" max="100" value="50">
+            </div>
+            
+            <div class="carousel-container">
+                <div class="carousel-nav prev">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                    </svg>
+                </div>
+                
+                <div id="soundGrid" class="sound-grid">
+                    <!-- Sound cards will be added here by JavaScript -->
+                </div>
+                
+                <div class="carousel-nav next">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                    </svg>
+                </div>
             </div>
         </main>
     </div>
