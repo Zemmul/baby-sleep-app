@@ -89,6 +89,7 @@ let prevButton;
 let nextButton;
 let fadeInterval = null;
 let lastVolume = 0.5; // Store the last volume level
+let mediaSession = null;
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
@@ -110,6 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Set initial volume
     lastVolume = volumeSlider.value / 100;
+    
+    // Set up media session for better volume control
+    setupMediaSession();
 });
 
 // Initialize sound cards
@@ -177,6 +181,9 @@ function playSound(index) {
     currentAudio = new Audio(soundData[index].audio);
     currentAudio.loop = true; // Enable looping
     currentAudio.volume = 0; // Start at volume 0 for fade in
+    
+    // Update media session
+    updateMediaSession(index);
     
     // Play the audio
     currentAudio.play().then(() => {
@@ -252,6 +259,62 @@ function pauseSound() {
     }
 }
 
+// Set up media session for better volume control
+function setupMediaSession() {
+    if ('mediaSession' in navigator) {
+        mediaSession = navigator.mediaSession;
+        
+        // Set up media session metadata
+        mediaSession.metadata = new MediaMetadata({
+            title: 'Baby Sleep Sounds',
+            artist: 'Baby Sleep & Rhyme Time',
+            album: 'Sleep Sounds',
+            artwork: [
+                { src: 'assets/images/default-cover.jpg', sizes: '512x512', type: 'image/jpeg' }
+            ]
+        });
+        
+        // Set up media session actions
+        mediaSession.setActionHandler('play', () => {
+            if (currentAudio && !isPlaying) {
+                const activeCard = document.querySelector('.sound-card.playing');
+                if (activeCard) {
+                    const index = parseInt(activeCard.getAttribute('data-index'));
+                    playSound(index);
+                }
+            }
+        });
+        
+        mediaSession.setActionHandler('pause', () => {
+            if (currentAudio && isPlaying) {
+                pauseSound();
+            }
+        });
+        
+        mediaSession.setActionHandler('stop', () => {
+            if (currentAudio) {
+                pauseSound();
+            }
+        });
+    }
+}
+
+// Update media session when playing a sound
+function updateMediaSession(index) {
+    if (mediaSession) {
+        const sound = soundData[index];
+        
+        mediaSession.metadata = new MediaMetadata({
+            title: sound.title,
+            artist: 'Baby Sleep & Rhyme Time',
+            album: 'Sleep Sounds',
+            artwork: [
+                { src: sound.image, sizes: '512x512', type: 'image/jpeg' }
+            ]
+        });
+    }
+}
+
 // Set up volume control
 function setupVolumeControl() {
     // Set initial volume
@@ -261,7 +324,21 @@ function setupVolumeControl() {
     
     // Add event listener for volume changes from slider
     volumeSlider.addEventListener('input', () => {
-        updateVolume(volumeSlider.value / 100);
+        const newVolume = volumeSlider.value / 100;
+        updateVolume(newVolume);
+        
+        // Update system volume if possible
+        if (currentAudio) {
+            try {
+                // Try to set the system volume
+                if (navigator.mediaSession && navigator.mediaSession.playbackState === 'playing') {
+                    // This will trigger the system volume UI
+                    currentAudio.volume = newVolume;
+                }
+            } catch (e) {
+                console.error('Error updating system volume:', e);
+            }
+        }
     });
     
     // Add event listener for volume toggle
@@ -293,13 +370,21 @@ function setupVolumeControl() {
     });
     
     // Listen for device volume changes
-    document.addEventListener('volumechange', () => {
+    window.addEventListener('volumechange', () => {
         if (currentAudio) {
             // Get the current device volume
             const deviceVolume = currentAudio.volume;
             
             // Update our UI and stored volume
             updateVolume(deviceVolume);
+        }
+    });
+    
+    // Add a global event listener for volume changes
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && currentAudio) {
+            // When the app becomes visible again, sync the volume
+            updateVolume(currentAudio.volume);
         }
     });
 }
