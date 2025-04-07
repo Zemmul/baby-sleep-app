@@ -169,15 +169,17 @@ function createSoundCard(sound, index) {
     
     // Create card content
     card.innerHTML = `
-        <img src="${sound.image}" alt="${sound.title}">
+        <div class="album-art-wrapper">
+            <img src="${sound.image}" alt="${sound.title}">
+            <div class="play-button">
+                <svg viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+            </div>
+        </div>
         <div class="sound-card-content">
             <h3>${sound.title}</h3>
             <p>${sound.description}</p>
-        </div>
-        <div class="play-button">
-            <svg viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-            </svg>
         </div>
     `;
     
