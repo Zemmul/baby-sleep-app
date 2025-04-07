@@ -84,6 +84,8 @@ let soundGrid;
 let volumeSlider;
 let volumeToggle;
 let currentAudio = null;
+let audioContext = null;
+let gainNode = null;
 let isPlaying = false;
 let prevButton;
 let nextButton;
@@ -100,6 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
     prevButton = document.querySelector('.carousel-nav.prev');
     nextButton = document.querySelector('.carousel-nav.next');
     
+    // Initialize Web Audio API
+    initAudioContext();
+    
     // Initialize sound cards
     initializeSoundCards();
     
@@ -115,6 +120,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set up media session for better volume control
     setupMediaSession();
 });
+
+// Initialize Web Audio API
+function initAudioContext() {
+    try {
+        // Create audio context
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Create gain node for volume control
+        gainNode = audioContext.createGain();
+        gainNode.connect(audioContext.destination);
+        
+        // Set initial volume
+        gainNode.gain.value = volumeSlider.value / 100;
+    } catch (e) {
+        console.error('Web Audio API not supported:', e);
+    }
+}
 
 // Initialize sound cards
 function initializeSoundCards() {
@@ -180,7 +202,15 @@ function playSound(index) {
     // Create a new audio instance
     currentAudio = new Audio(soundData[index].audio);
     currentAudio.loop = true; // Enable looping
-    currentAudio.volume = 0; // Start at volume 0 for fade in
+    
+    // Connect to Web Audio API if available
+    if (audioContext && gainNode) {
+        const source = audioContext.createMediaElementSource(currentAudio);
+        source.connect(gainNode);
+        gainNode.gain.value = 0; // Start at volume 0 for fade in
+    } else {
+        currentAudio.volume = 0; // Fallback to standard volume control
+    }
     
     // Update media session
     updateMediaSession(index);
@@ -213,7 +243,11 @@ function playSound(index) {
         fadeInterval = setInterval(() => {
             if (currentVolume < targetVolume) {
                 currentVolume = Math.min(currentVolume + fadeStep, targetVolume);
-                currentAudio.volume = currentVolume;
+                if (gainNode) {
+                    gainNode.gain.value = currentVolume;
+                } else {
+                    currentAudio.volume = currentVolume;
+                }
             } else {
                 clearInterval(fadeInterval);
             }
@@ -229,7 +263,7 @@ function pauseSound() {
     if (currentAudio) {
         // Fade out before pausing
         const fadeStep = 0.05;
-        let currentVolume = currentAudio.volume;
+        let currentVolume = gainNode ? gainNode.gain.value : currentAudio.volume;
         
         // Clear any existing fade interval
         if (fadeInterval) {
@@ -239,7 +273,11 @@ function pauseSound() {
         fadeInterval = setInterval(() => {
             if (currentVolume > 0) {
                 currentVolume = Math.max(currentVolume - fadeStep, 0);
-                currentAudio.volume = currentVolume;
+                if (gainNode) {
+                    gainNode.gain.value = currentVolume;
+                } else {
+                    currentAudio.volume = currentVolume;
+                }
             } else {
                 clearInterval(fadeInterval);
                 currentAudio.pause();
@@ -318,7 +356,9 @@ function updateMediaSession(index) {
 // Set up volume control
 function setupVolumeControl() {
     // Set initial volume
-    if (currentAudio) {
+    if (gainNode) {
+        gainNode.gain.value = volumeSlider.value / 100;
+    } else if (currentAudio) {
         currentAudio.volume = volumeSlider.value / 100;
     }
     
@@ -326,27 +366,14 @@ function setupVolumeControl() {
     volumeSlider.addEventListener('input', () => {
         const newVolume = volumeSlider.value / 100;
         updateVolume(newVolume);
-        
-        // Update system volume if possible
-        if (currentAudio) {
-            try {
-                // Try to set the system volume
-                if (navigator.mediaSession && navigator.mediaSession.playbackState === 'playing') {
-                    // This will trigger the system volume UI
-                    currentAudio.volume = newVolume;
-                }
-            } catch (e) {
-                console.error('Error updating system volume:', e);
-            }
-        }
     });
     
     // Add event listener for volume toggle
     volumeToggle.addEventListener('click', () => {
         if (currentAudio) {
-            if (currentAudio.volume > 0) {
+            if ((gainNode && gainNode.gain.value > 0) || (!gainNode && currentAudio.volume > 0)) {
                 // Store current volume and mute
-                lastVolume = currentAudio.volume;
+                lastVolume = gainNode ? gainNode.gain.value : currentAudio.volume;
                 updateVolume(0);
                 
                 // Update volume icon
@@ -373,7 +400,7 @@ function setupVolumeControl() {
     window.addEventListener('volumechange', () => {
         if (currentAudio) {
             // Get the current device volume
-            const deviceVolume = currentAudio.volume;
+            const deviceVolume = gainNode ? gainNode.gain.value : currentAudio.volume;
             
             // Update our UI and stored volume
             updateVolume(deviceVolume);
@@ -384,9 +411,19 @@ function setupVolumeControl() {
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && currentAudio) {
             // When the app becomes visible again, sync the volume
-            updateVolume(currentAudio.volume);
+            const currentVolume = gainNode ? gainNode.gain.value : currentAudio.volume;
+            updateVolume(currentVolume);
         }
     });
+    
+    // Add a direct event listener for the audio element
+    if (currentAudio) {
+        currentAudio.addEventListener('volumechange', () => {
+            // When the audio volume changes (e.g., from device buttons)
+            const newVolume = currentAudio.volume;
+            updateVolume(newVolume);
+        });
+    }
 }
 
 // Update volume across all components
@@ -399,7 +436,11 @@ function updateVolume(volume) {
     
     // Update the audio volume
     if (currentAudio) {
-        currentAudio.volume = volume;
+        if (gainNode) {
+            gainNode.gain.value = volume;
+        } else {
+            currentAudio.volume = volume;
+        }
     }
     
     // Update the volume icon
