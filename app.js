@@ -91,6 +91,7 @@ let prevButton;
 let nextButton;
 let fadeInterval = null;
 let lastVolume = 0.5; // Store the last volume level
+let audioCache = {}; // Cache for preloaded audio elements
 let mediaSession = null;
 
 // Initialize the app
@@ -104,6 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize Web Audio API
     initAudioContext();
+    
+    // Preload audio files
+    preloadAudio();
     
     // Initialize sound cards
     initializeSoundCards();
@@ -120,6 +124,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set up media session for better volume control
     setupMediaSession();
 });
+
+// Preload audio files
+function preloadAudio() {
+    soundData.forEach(sound => {
+        const audio = new Audio();
+        audio.src = sound.audio;
+        audio.preload = 'auto';
+        audioCache[sound.id] = audio;
+    });
+}
 
 // Initialize Web Audio API
 function initAudioContext() {
@@ -193,21 +207,40 @@ function handlePlayButtonClick(index) {
 
 // Play a sound
 function playSound(index) {
+    const sound = soundData[index];
+    
     // Stop any currently playing audio
     if (currentAudio) {
         currentAudio.pause();
         currentAudio = null;
     }
     
-    // Create a new audio instance
-    currentAudio = new Audio(soundData[index].audio);
+    // Use cached audio if available, otherwise create new
+    if (audioCache[sound.id]) {
+        currentAudio = audioCache[sound.id];
+    } else {
+        currentAudio = new Audio(sound.audio);
+        audioCache[sound.id] = currentAudio;
+    }
+    
+    // Reset the audio to the beginning
+    currentAudio.currentTime = 0;
     currentAudio.loop = true; // Enable looping
     
     // Connect to Web Audio API if available
     if (audioContext && gainNode) {
-        const source = audioContext.createMediaElementSource(currentAudio);
-        source.connect(gainNode);
-        gainNode.gain.value = 0; // Start at volume 0 for fade in
+        try {
+            // Check if already connected
+            if (!currentAudio._connected) {
+                const source = audioContext.createMediaElementSource(currentAudio);
+                source.connect(gainNode);
+                currentAudio._connected = true;
+            }
+            gainNode.gain.value = 0; // Start at volume 0 for fade in
+        } catch (e) {
+            console.error('Error connecting audio to Web Audio API:', e);
+            currentAudio.volume = 0; // Fallback to standard volume control
+        }
     } else {
         currentAudio.volume = 0; // Fallback to standard volume control
     }
@@ -216,53 +249,57 @@ function playSound(index) {
     updateMediaSession(index);
     
     // Play the audio
-    currentAudio.play().then(() => {
-        isPlaying = true;
-        
-        // Update UI
-        const cards = document.querySelectorAll('.sound-card');
-        const activeCard = cards[index];
-        if (activeCard) {
-            activeCard.classList.add('playing');
+    const playPromise = currentAudio.play();
+    
+    if (playPromise !== undefined) {
+        playPromise.then(() => {
+            isPlaying = true;
             
-            // Update play button to pause
-            const playButton = activeCard.querySelector('.play-button svg');
-            playButton.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
-        }
+            // Update UI
+            const cards = document.querySelectorAll('.sound-card');
+            const activeCard = cards[index];
+            if (activeCard) {
+                activeCard.classList.add('playing');
+                
+                // Update play button to pause
+                const playButton = activeCard.querySelector('.play-button svg');
+                playButton.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+            }
 
-        // Fade in the audio
-        const targetVolume = volumeSlider.value / 100;
-        let currentVolume = 0;
-        const fadeStep = 0.05;
-        
-        // Clear any existing fade interval
-        if (fadeInterval) {
-            clearInterval(fadeInterval);
-        }
-        
-        fadeInterval = setInterval(() => {
-            if (currentVolume < targetVolume) {
-                currentVolume = Math.min(currentVolume + fadeStep, targetVolume);
-                if (gainNode) {
-                    gainNode.gain.value = currentVolume;
-                } else {
-                    currentAudio.volume = currentVolume;
-                }
-            } else {
+            // Fade in the audio
+            const targetVolume = volumeSlider.value / 100;
+            let currentVolume = 0;
+            const fadeStep = 0.1; // Increased fade step for faster fade in
+            
+            // Clear any existing fade interval
+            if (fadeInterval) {
                 clearInterval(fadeInterval);
             }
-        }, 50);
-        
-    }).catch(error => {
-        console.error('Error playing audio:', error);
-    });
+            
+            fadeInterval = setInterval(() => {
+                if (currentVolume < targetVolume) {
+                    currentVolume = Math.min(currentVolume + fadeStep, targetVolume);
+                    if (gainNode) {
+                        gainNode.gain.value = currentVolume;
+                    } else {
+                        currentAudio.volume = currentVolume;
+                    }
+                } else {
+                    clearInterval(fadeInterval);
+                }
+            }, 30); // Reduced interval for faster updates
+            
+        }).catch(error => {
+            console.error('Error playing audio:', error);
+        });
+    }
 }
 
 // Pause the current sound
 function pauseSound() {
     if (currentAudio) {
         // Fade out before pausing
-        const fadeStep = 0.05;
+        const fadeStep = 0.1; // Increased fade step for faster fade out
         let currentVolume = gainNode ? gainNode.gain.value : currentAudio.volume;
         
         // Clear any existing fade interval
@@ -293,7 +330,7 @@ function pauseSound() {
                     playButton.innerHTML = '<path d="M8 5v14l11-7z"/>';
                 });
             }
-        }, 50);
+        }, 30); // Reduced interval for faster updates
     }
 }
 
