@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="toilet-map-api.js" type="module" defer></script>
     <script src="baby-days-out.js" defer></script>
     <style>
         /* Map styles */
@@ -45,18 +46,6 @@
         
         .location-search button:hover {
             background-color: #e6954a;
-        }
-        
-        /* Location error styles */
-        .location-error {
-            display: none;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background-color: #ffebee;
-            color: #c62828;
-            border-radius: 4px;
-            margin-bottom: 20px;
         }
         
         /* Filter buttons styles */
@@ -133,6 +122,24 @@
             padding: 20px;
             color: #666;
         }
+        
+        /* Toilet specific styles */
+        .toilet-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        
+        .toilet-info {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #ddd;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -149,19 +156,15 @@
     <main>
         <div class="location-search">
             <input type="text" id="location-input" placeholder="Enter your location">
-            <button id="search-button" style="background-color: #FDA964;">Search</button>
-        </div>
-        
-        <div id="location-error" class="location-error">
-            <span>Unable to get your location</span>
-            <button id="retry-location">Retry</button>
+            <button id="search-button">Search</button>
         </div>
         
         <div id="map"></div>
         
         <div class="filter-buttons">
-            <button class="filter-button active" data-filter="all" style="background-color: #FDA964; border-color: #FDA964;">All</button>
+            <button class="filter-button active" data-filter="all">All</button>
             <button class="filter-button" data-filter="facilities">Parent Facilities</button>
+            <button class="filter-button" data-filter="toilets">Toilets</button>
             <button class="filter-button" data-filter="events">Baby Events</button>
             <button class="filter-button" data-filter="today">Today</button>
             <button class="filter-button" data-filter="tomorrow">Tomorrow</button>

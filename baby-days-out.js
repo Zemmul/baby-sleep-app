@@ -4,8 +4,9 @@ let userMarker;
 let currentLocation = null;
 let markers = [];
 let places = [];
+let selectedMarker = null; // Track the currently selected marker
 
-// Melbourne coordinates
+// Melbourne coordinates as default
 const MELBOURNE_COORDS = {
     lat: -37.8136,
     lng: 144.9631
@@ -15,10 +16,35 @@ const MELBOURNE_COORDS = {
 const mapElement = document.getElementById('map');
 const locationInput = document.getElementById('location-input');
 const searchButton = document.getElementById('search-button');
-const retryLocationButton = document.getElementById('retry-location');
-const locationError = document.getElementById('location-error');
 const directoryContainer = document.getElementById('directory');
 const filterButtons = document.querySelectorAll('.filter-button');
+
+// Date helper functions
+function isToday(dateString) {
+    if (!dateString) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const date = new Date(dateString);
+    date.setHours(0, 0, 0, 0);
+    return date.getTime() === today.getTime();
+}
+
+function isTomorrow(dateString) {
+    if (!dateString) return false;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const date = new Date(dateString);
+    date.setHours(0, 0, 0, 0);
+    return date.getTime() === tomorrow.getTime();
+}
+
+function isWeekend(dateString) {
+    if (!dateString) return false;
+    const date = new Date(dateString);
+    const day = date.getDay();
+    return day === 0 || day === 6; // Saturday or Sunday
+}
 
 // Initialize the map
 function initMap() {
@@ -43,21 +69,8 @@ function initMap() {
         })
     }).addTo(map);
     
-    // Add location control button
-    const locationControl = L.control({ position: 'bottomright' });
-    locationControl.onAdd = function() {
-        const div = L.DomUtil.create('div', 'location-control');
-        div.innerHTML = '<button class="location-button" title="Go to my location"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></button>';
-        div.onclick = function() {
-            getCurrentLocation();
-        };
-        return div;
-    };
-    locationControl.addTo(map);
-    
     // Add event listeners
     searchButton.addEventListener('click', searchLocation);
-    retryLocationButton.addEventListener('click', getCurrentLocation);
     
     // Add filter button event listeners
     filterButtons.forEach(button => {
@@ -72,99 +85,12 @@ function initMap() {
     });
 
     // Show initial message
-    directoryContainer.innerHTML = '<div class="no-results">Enter your location or click the location button to find nearby places.</div>';
+    directoryContainer.innerHTML = '<div class="loading">Loading nearby places...</div>';
     
     console.log('Map initialization complete');
     
-    // Search for places in Melbourne by default
-    searchNearbyPlaces(MELBOURNE_COORDS);
-}
-
-// Get the user's current location
-function getCurrentLocation() {
-    console.log('Getting current location...');
-    
-    // Show loading state
-    directoryContainer.innerHTML = '<div class="loading">Getting your location...</div>';
-    
-    // Hide location error
-    locationError.style.display = 'none';
-    
-    if (!navigator.geolocation) {
-        console.error('Geolocation is not supported by this browser');
-        showLocationError('Your browser doesn\'t support geolocation. Please enter your location manually.');
-        return;
-    }
-    
-    // Check if we're in a secure context
-    if (window.isSecureContext === false) {
-        console.error('Geolocation requires a secure context (HTTPS)');
-        showLocationError('Location access requires a secure connection. Please ensure you\'re using HTTPS.');
-        return;
-    }
-    
-    // Use a simple approach with minimal options
-    const options = {
-        enableHighAccuracy: false,
-        timeout: 5000,
-        maximumAge: 0
-    };
-    
-    // Try to get location once
-    navigator.geolocation.getCurrentPosition(
-        // Success callback
-        position => {
-            console.log('Location obtained successfully:', position);
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            currentLocation = { lat, lng };
-            
-            // Update map view
-            map.setView([lat, lng], 14);
-            
-            // Update user marker
-            userMarker.setLatLng([lat, lng]);
-            
-            // Search for nearby places
-            searchNearbyPlaces({ lat, lng });
-        },
-        // Error callback
-        error => {
-            console.error('Error getting location:', error);
-            
-            // Show a helpful error message
-            let errorMessage = 'Unable to get your location. ';
-            
-            if (error.code === 1) { // PERMISSION_DENIED
-                errorMessage += 'Please allow location access in your browser settings.';
-            } else if (error.code === 2) { // POSITION_UNAVAILABLE
-                errorMessage += 'Your device is having trouble getting a location fix. Please try again later or enter your location manually.';
-            } else if (error.code === 3) { // TIMEOUT
-                errorMessage += 'Location request timed out. Please try again.';
-            } else {
-                errorMessage += 'Please check your device settings or enter your location manually.';
-            }
-            
-            showLocationError(errorMessage);
-            
-            // Suggest using the search box
-            directoryContainer.innerHTML = '<div class="no-results">Please enter your location in the search box above to find nearby places.</div>';
-        },
-        options
-    );
-}
-
-// Show location error message
-function showLocationError(message) {
-    locationError.style.display = 'flex';
-    locationError.innerHTML = `
-        <span>${message}</span>
-        <button id="retry-location">Retry</button>
-    `;
-    directoryContainer.innerHTML = '<div class="no-results">Please enter your location to find nearby places.</div>';
-    
-    // Re-attach retry button event listener
-    document.getElementById('retry-location').addEventListener('click', getCurrentLocation);
+    // Load data for Melbourne by default
+    loadData(MELBOURNE_COORDS);
 }
 
 // Search for a location based on user input
@@ -202,8 +128,8 @@ function searchLocation() {
                 // Update user marker
                 userMarker.setLatLng([lat, lng]);
                 
-                // Search for nearby places
-                searchNearbyPlaces({ lat, lng });
+                // Load data for the searched location
+                loadData({ lat, lng });
             } else {
                 directoryContainer.innerHTML = '<div class="no-results">Location not found. Please try a different search term.</div>';
             }
@@ -214,8 +140,8 @@ function searchLocation() {
         });
 }
 
-// Search for nearby places based on location
-function searchNearbyPlaces(location) {
+// Load data for a location
+async function loadData(location) {
     // Show loading state
     directoryContainer.innerHTML = '<div class="loading">Finding nearby places...</div>';
     
@@ -223,94 +149,25 @@ function searchNearbyPlaces(location) {
     markers.forEach(marker => marker.remove());
     markers = [];
     
-    // In a real application, you would use a proper API to search for places
-    // For this demo, we'll use sample data
-    setTimeout(() => {
-        // Sample data for parent facilities
-        const facilities = [
-            {
-                id: 1,
-                name: 'Shopping Centre Parent Room',
-                type: 'facility',
-                description: 'Spacious parent room with changing tables, feeding area, and comfortable seating.',
-                address: '123 Main St, Sydney',
-                lat: location.lat + 0.002,
-                lng: location.lng + 0.002,
-                tags: ['Changing Table', 'Feeding Area', 'Wheelchair Accessible']
-            },
-            {
-                id: 2,
-                name: 'Park Baby Change Facility',
-                type: 'facility',
-                description: 'Clean and well-maintained baby change facility in the park.',
-                address: '456 Park Ave, Sydney',
-                lat: location.lat - 0.003,
-                lng: location.lng + 0.001,
-                tags: ['Changing Table', 'Outdoor']
-            },
-            {
-                id: 3,
-                name: 'Library Family Room',
-                type: 'facility',
-                description: 'Quiet space for parents and babies with changing facilities.',
-                address: '789 Library St, Sydney',
-                lat: location.lat + 0.001,
-                lng: location.lng - 0.002,
-                tags: ['Changing Table', 'Quiet Space', 'Books']
-            }
-        ];
+    try {
+        // Fetch toilet data from the National Public Toilet Map API
+        const toiletData = await window.ToiletMapAPI.searchToilets(location);
+        console.log('Toilet data:', toiletData);
         
-        // Sample data for baby events
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        const events = [
-            {
-                id: 4,
-                name: 'Baby Music Class',
-                type: 'event',
-                description: 'Interactive music class for babies 0-12 months. Songs, rhymes, and gentle movements.',
-                address: '321 Music Hall, Sydney',
-                lat: location.lat + 0.004,
-                lng: location.lng - 0.001,
-                date: today.toISOString().split('T')[0],
-                time: '10:00 AM',
-                tags: ['Music', '0-12 months', 'Today']
-            },
-            {
-                id: 5,
-                name: 'Baby Sensory Play',
-                type: 'event',
-                description: 'Sensory play session for babies to explore textures, sounds, and colors.',
-                address: '654 Play Centre, Sydney',
-                lat: location.lat - 0.002,
-                lng: location.lng - 0.003,
-                date: tomorrow.toISOString().split('T')[0],
-                time: '11:30 AM',
-                tags: ['Sensory', '6-12 months', 'Tomorrow']
-            },
-            {
-                id: 6,
-                name: 'Parent & Baby Yoga',
-                type: 'event',
-                description: 'Gentle yoga session for parents and babies. Bonding through movement.',
-                address: '987 Yoga Studio, Sydney',
-                lat: location.lat + 0.003,
-                lng: location.lng + 0.003,
-                date: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                time: '9:00 AM',
-                tags: ['Yoga', 'All Ages', 'This Weekend']
-            }
-        ];
+        // Get sample data for facilities and events
+        const facilities = getSampleFacilities(location);
+        const events = getSampleEvents(location);
         
         // Combine all places
-        places = [...facilities, ...events];
+        places = [...toiletData, ...facilities, ...events];
         
         // Add markers to the map
         places.forEach(place => {
-            const markerColor = place.type === 'facility' ? '#9D8576' : '#FDA964';
-            const marker = L.marker([place.lat, place.lng], {
+            const markerColor = getMarkerColor(place);
+            const lat = place.latitude || place.lat; // Support both formats
+            const lng = place.longitude || place.lng; // Support both formats
+            
+            const marker = L.marker([lat, lng], {
                 icon: L.divIcon({
                     className: 'place-marker',
                     html: `<div style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>`,
@@ -322,92 +179,214 @@ function searchNearbyPlaces(location) {
             // Add popup to marker
             marker.bindPopup(`
                 <strong>${place.name}</strong><br>
-                ${place.description}<br>
-                <small>${place.address}</small>
+                ${place.description}
             `);
+            
+            // Store the place data with the marker for later reference
+            marker.placeData = place;
             
             markers.push(marker);
         });
         
-        // Render the directory
-        renderDirectory('all');
-    }, 1000); // Simulate API delay
+        // Render the directory with the current filter
+        const activeFilter = document.querySelector('.filter-button.active').dataset.filter;
+        renderDirectory(activeFilter);
+    } catch (error) {
+        console.error('Error loading data:', error);
+        directoryContainer.innerHTML = '<div class="no-results">Error loading nearby places. Please try again.</div>';
+    }
 }
 
-// Render the directory based on the selected filter
-function renderDirectory(filter) {
-    // Filter places based on the selected filter
-    let filteredPlaces = places;
-    
-    if (filter !== 'all') {
-        if (filter === 'facilities') {
-            filteredPlaces = places.filter(place => place.type === 'facility');
-        } else if (filter === 'events') {
-            filteredPlaces = places.filter(place => place.type === 'event');
-        } else if (filter === 'today') {
-            const today = new Date().toISOString().split('T')[0];
-            filteredPlaces = places.filter(place => place.type === 'event' && place.date === today);
-        } else if (filter === 'tomorrow') {
-            const tomorrow = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0];
-            filteredPlaces = places.filter(place => place.type === 'event' && place.date === tomorrow);
-        } else if (filter === 'weekend') {
-            const today = new Date();
-            const day = today.getDay();
-            const daysUntilWeekend = day === 0 ? 0 : (day === 6 ? 0 : 6 - day);
-            const weekendDate = new Date(today.setDate(today.getDate() + daysUntilWeekend)).toISOString().split('T')[0];
-            filteredPlaces = places.filter(place => place.type === 'event' && place.date === weekendDate);
+// Get sample facilities data
+function getSampleFacilities(location) {
+    return [
+        {
+            id: 'facility-1',
+            name: 'Shopping Centre Parent Room',
+            type: 'facility',
+            description: 'Spacious parent room with changing tables, feeding area, and comfortable seating.',
+            address: '123 Main St, Melbourne',
+            lat: location.lat + 0.002,
+            lng: location.lng + 0.002,
+            tags: ['Changing Table', 'Feeding Area', 'Wheelchair Accessible']
+        },
+        {
+            id: 'facility-2',
+            name: 'Park Baby Change Facility',
+            type: 'facility',
+            description: 'Clean and well-maintained baby change facility in the park.',
+            address: '456 Park Ave, Melbourne',
+            lat: location.lat - 0.003,
+            lng: location.lng + 0.001,
+            tags: ['Changing Table', 'Outdoor']
+        },
+        {
+            id: 'facility-3',
+            name: 'Library Family Room',
+            type: 'facility',
+            description: 'Quiet space for parents and babies with changing facilities.',
+            address: '789 Library St, Melbourne',
+            lat: location.lat + 0.001,
+            lng: location.lng - 0.002,
+            tags: ['Changing Table', 'Quiet Space', 'Books']
         }
+    ];
+}
+
+// Get sample events data
+function getSampleEvents(location) {
+    return [
+        {
+            id: 'event-1',
+            name: 'Baby Music Class',
+            type: 'event',
+            description: 'Interactive music class for babies 0-12 months. Songs, rhymes, and gentle movements.',
+            address: '321 Music Hall, Melbourne',
+            lat: location.lat + 0.004,
+            lng: location.lng - 0.001,
+            date: new Date().toISOString().split('T')[0],
+            time: '10:00 AM',
+            tags: ['Music', '0-12 months', 'Today']
+        },
+        {
+            id: 'event-2',
+            name: 'Baby Sensory Play',
+            type: 'event',
+            description: 'Sensory play session for babies to explore textures, sounds, and colors.',
+            address: '654 Play Centre, Melbourne',
+            lat: location.lat - 0.002,
+            lng: location.lng - 0.003,
+            date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+            time: '11:30 AM',
+            tags: ['Sensory', '6-12 months', 'Tomorrow']
+        },
+        {
+            id: 'event-3',
+            name: 'Parent & Baby Yoga',
+            type: 'event',
+            description: 'Gentle yoga session for parents and babies. Bonding through movement.',
+            address: '987 Yoga Studio, Melbourne',
+            lat: location.lat + 0.003,
+            lng: location.lng + 0.003,
+            date: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
+            time: '9:00 AM',
+            tags: ['Yoga', 'All Ages', 'This Weekend']
+        }
+    ];
+}
+
+// Get marker color based on place type
+function getMarkerColor(place) {
+    switch (place.type) {
+        case 'toilet':
+            return '#4CAF50'; // Green
+        case 'facility':
+            return '#2196F3'; // Blue
+        case 'event':
+            return '#9C27B0'; // Purple
+        default:
+            return '#757575'; // Grey
+    }
+}
+
+// Render the directory with filtered places
+function renderDirectory(filter = 'all') {
+    console.log('Rendering directory with filter:', filter);
+    
+    // Filter places based on type and date
+    const filteredPlaces = places.filter(place => {
+        if (filter === 'all') return true;
+        if (filter === 'toilets') return place.type === 'toilet';
+        if (filter === 'facilities') return place.type === 'facility';
+        if (filter === 'events') return place.type === 'event';
+        
+        // Date-based filters for events
+        if (filter === 'today' && place.type === 'event') {
+            return isToday(place.date);
+        }
+        if (filter === 'tomorrow' && place.type === 'event') {
+            return isTomorrow(place.date);
+        }
+        if (filter === 'weekend' && place.type === 'event') {
+            return isWeekend(place.date);
+        }
+        
+        return false;
+    });
+    
+    // Sort places by distance if we have user location
+    if (currentLocation) {
+        filteredPlaces.sort((a, b) => {
+            const aLat = a.latitude || a.lat;
+            const aLng = a.longitude || a.lng;
+            const bLat = b.latitude || b.lat;
+            const bLng = b.longitude || b.lng;
+            
+            const distA = calculateDistance(
+                currentLocation.lat,
+                currentLocation.lng,
+                aLat,
+                aLng
+            );
+            const distB = calculateDistance(
+                currentLocation.lat,
+                currentLocation.lng,
+                bLat,
+                bLng
+            );
+            return distA - distB;
+        });
     }
     
-    // Clear the directory container
-    directoryContainer.innerHTML = '';
-    
-    // If no places match the filter, show a message
+    // Generate HTML for the directory
     if (filteredPlaces.length === 0) {
-        directoryContainer.innerHTML = '<div class="no-results">No places found matching your filter.</div>';
+        directoryContainer.innerHTML = '<div class="no-results">No places found for the selected filter.</div>';
         return;
     }
     
-    // Render each place
-    filteredPlaces.forEach(place => {
-        const placeElement = document.createElement('div');
-        placeElement.className = 'directory-item';
-        
-        // Create the HTML for the place
-        let placeHTML = `
-            <h3>${place.name}</h3>
-            <p>${place.description}</p>
-            <p><strong>Address:</strong> ${place.address}</p>
+    const html = filteredPlaces.map(place => {
+        const distance = currentLocation ? 
+            calculateDistance(
+                currentLocation.lat,
+                currentLocation.lng,
+                place.latitude || place.lat,
+                place.longitude || place.lng
+            ).toFixed(1) : null;
+            
+        return `
+            <div class="directory-item" onclick="selectPlace('${place.id}')">
+                <div class="item-header">
+                    ${place.type === 'toilet' ? '<span class="toilet-icon"></span>' : ''}
+                    <h3>${place.name}</h3>
+                    ${distance ? `<span class="distance">${distance}km</span>` : ''}
+                </div>
+                <p>${place.description}</p>
+                ${place.amenities ? `
+                    <div class="toilet-info">
+                        <strong>Amenities:</strong> ${place.amenities.join(', ')}
+                    </div>
+                ` : ''}
+                <div class="tags">
+                    ${place.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                </div>
+            </div>
         `;
-        
-        // Add date and time for events
-        if (place.type === 'event') {
-            const date = new Date(place.date);
-            const formattedDate = date.toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            placeHTML += `<p><strong>Date:</strong> ${formattedDate}</p>`;
-            placeHTML += `<p><strong>Time:</strong> ${place.time}</p>`;
-        }
-        
-        // Add tags
-        placeHTML += '<div class="tags">';
-        place.tags.forEach(tag => {
-            placeHTML += `<span class="tag">${tag}</span>`;
-        });
-        placeHTML += '</div>';
-        
-        // Set the HTML and add click event to center the map on the place
-        placeElement.innerHTML = placeHTML;
-        placeElement.addEventListener('click', () => {
-            map.setView([place.lat, place.lng], 16);
-            markers.find(marker => 
-                marker.getLatLng().lat === place.lat && 
-                marker.getLatLng().lng === place.lng
-            ).openPopup();
-        });
-        
-        // Add to the directory container
-        directoryContainer.appendChild(placeElement);
-    });
+    }).join('');
+    
+    directoryContainer.innerHTML = html;
+}
+
+// Calculate distance between two points using the Haversine formula
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
 }
 
 // Filter the directory based on the selected filter
@@ -415,5 +394,45 @@ function filterDirectory(filter) {
     renderDirectory(filter);
 }
 
-// Initialize the map when the page loads
-document.addEventListener('DOMContentLoaded', initMap); 
+// Select a place and show its details
+function selectPlace(placeId) {
+    const place = places.find(p => p.id === placeId);
+    if (!place) return;
+    
+    // Find the corresponding marker
+    const marker = markers.find(m => m.placeData.id === placeId);
+    if (!marker) return;
+    
+    // Deselect previous marker if any
+    if (selectedMarker) {
+        const prevIcon = selectedMarker.getIcon();
+        prevIcon.options.html = prevIcon.options.html.replace('3px', '2px');
+        selectedMarker.setIcon(prevIcon);
+    }
+    
+    // Select new marker
+    const icon = marker.getIcon();
+    icon.options.html = icon.options.html.replace('2px', '3px');
+    marker.setIcon(icon);
+    selectedMarker = marker;
+    
+    // Pan to marker
+    map.panTo(marker.getLatLng());
+    
+    // Open popup
+    marker.openPopup();
+}
+
+// Wait for the ToiletMapAPI to be initialized
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM loaded, initializing map...');
+    
+    // Wait a moment for the ToiletMapAPI to be initialized
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Initialize the map
+    initMap();
+    
+    // Set up event listeners
+    setupEventListeners();
+}); 

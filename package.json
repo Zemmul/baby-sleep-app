@@ -1,0 +1,12 @@
+{
+  "name": "baby-sleep-app",
+  "version": "1.0.0",
+  "description": "Baby Sleep App with Baby Days Out feature",
+  "main": "index.js",
+  "scripts": {
+    "convert-toilet-data": "node convert-toilet-data.js"
+  },
+  "dependencies": {
+    "csv-parse": "^5.5.3"
+  }
+} 
