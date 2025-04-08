@@ -1,3 +1,4 @@
+// Service Worker for background audio playback
 const CACHE_NAME = 'baby-sleep-app-v1';
 const ASSETS_TO_CACHE = [
     '/',

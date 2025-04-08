@@ -616,6 +616,30 @@ async function initAudioContext() {
                 });
         }
         
+        // Set up a periodic check to ensure audio context stays active
+        setInterval(() => {
+            if (isPlaying) {
+                // Check if audio context is suspended
+                if (audioContext.state === 'suspended') {
+                    console.log('Audio context suspended, attempting to resume');
+                    resumeAudioContext();
+                }
+                
+                // Check if audio is actually playing
+                if (currentAudio && currentAudio.paused) {
+                    console.log('Audio paused, attempting to resume');
+                    currentAudio.play().catch(err => {
+                        console.error('Error resuming audio:', err);
+                    });
+                }
+                
+                // Request wake lock if needed
+                if (!wakeLock) {
+                    requestWakeLock();
+                }
+            }
+        }, 10000); // Check every 10 seconds
+        
         console.log('Audio context initialized successfully');
     } catch (error) {
         console.error('Error initializing audio context:', error);
