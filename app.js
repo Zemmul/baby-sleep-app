@@ -722,10 +722,40 @@ function playSound(index) {
             })
             .catch(error => {
                 console.error('Error playing audio:', error);
-                isPlaying = false;
-                updatePlayButtonUI();
+                // Try fallback method using AudioBuffer if available
+                if (audioBuffers[sound.id]) {
+                    playAudioBuffer(sound.id);
+                } else {
+                    isPlaying = false;
+                    updatePlayButtonUI();
+                }
             });
     }
+}
+
+// Fade in the audio
+function fadeIn() {
+    const targetVolume = volumeSlider.value / 100;
+    let currentVolume = 0;
+    const fadeStep = 0.1;
+    
+    // Clear any existing fade interval
+    if (fadeInterval) {
+        clearInterval(fadeInterval);
+    }
+    
+    fadeInterval = setInterval(() => {
+        if (currentVolume < targetVolume) {
+            currentVolume = Math.min(currentVolume + fadeStep, targetVolume);
+            if (gainNode) {
+                gainNode.gain.value = currentVolume;
+            } else {
+                currentAudio.volume = currentVolume;
+            }
+        } else {
+            clearInterval(fadeInterval);
+        }
+    }, 30);
 }
 
 // Play audio using AudioBuffer (fallback method)
@@ -749,6 +779,9 @@ function playAudioBuffer(soundId) {
     // Update UI
     isPlaying = true;
     updatePlayButtonUI();
+    
+    // Start fade in
+    fadeIn();
 }
 
 // Pause the current sound
