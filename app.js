@@ -100,6 +100,8 @@ let batteryManager = null; // Battery status manager
 let backgroundPlaybackEnabled = true; // User preference for background playback
 let currentSoundIndex = null; // Store the current sound index
 let currentAudioBufferSource = null; // Store the current AudioBufferSource node
+let deferredPrompt = null; // Store the beforeinstallprompt event
+let isPWA = false; // Flag to track if running as PWA
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
@@ -109,6 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
     volumeToggle = document.getElementById('volumeToggle');
     prevButton = document.querySelector('.carousel-nav.prev');
     nextButton = document.querySelector('.carousel-nav.next');
+    
+    // Check if running as PWA
+    checkPWAMode();
     
     // Initialize Web Audio API
     initAudioContext();
@@ -153,7 +158,170 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Check if we need to resume playback
     checkResumePlayback();
+    
+    // Listen for the beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent Chrome 67 and earlier from automatically showing the prompt
+        e.preventDefault();
+        // Stash the event so it can be triggered later
+        deferredPrompt = e;
+        // Show the install prompt if not in PWA mode
+        if (!isPWA) {
+            showInstallPrompt();
+        }
+    });
+    
+    // Listen for app installed event
+    window.addEventListener('appinstalled', () => {
+        // Log the installation
+        console.log('App was installed');
+        // Hide the install prompt
+        hideInstallPrompt();
+        // Update PWA status
+        isPWA = true;
+    });
 });
+
+// Check if running as PWA
+function checkPWAMode() {
+    // Check if the app is running in standalone mode (PWA)
+    isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+            window.navigator.standalone || 
+            document.referrer.includes('android-app://');
+    
+    console.log('Running as PWA:', isPWA);
+    
+    // If not in PWA mode, show the install prompt after a delay
+    if (!isPWA) {
+        setTimeout(() => {
+            showInstallPrompt();
+        }, 3000); // Show after 3 seconds
+    }
+}
+
+// Show install prompt
+function showInstallPrompt() {
+    // Check if we already have a prompt
+    let prompt = document.getElementById('install-prompt');
+    
+    // If no prompt exists, create one
+    if (!prompt) {
+        prompt = document.createElement('div');
+        prompt.id = 'install-prompt';
+        prompt.className = 'install-prompt';
+        
+        // Create prompt content
+        prompt.innerHTML = `
+            <div class="install-content">
+                <h3>Install Baby Sleep App</h3>
+                <p>Install this app on your device for the best experience, including background audio playback.</p>
+                <div class="install-buttons">
+                    <button id="install-button" class="install-button">Install</button>
+                    <button id="dismiss-install" class="dismiss-button">Not Now</button>
+                </div>
+            </div>
+        `;
+        
+        // Add to the document
+        document.body.appendChild(prompt);
+        
+        // Add event listeners
+        document.getElementById('install-button').addEventListener('click', installApp);
+        document.getElementById('dismiss-install').addEventListener('click', hideInstallPrompt);
+    }
+    
+    // Show the prompt
+    prompt.style.display = 'flex';
+}
+
+// Hide install prompt
+function hideInstallPrompt() {
+    const prompt = document.getElementById('install-prompt');
+    if (prompt) {
+        prompt.style.display = 'none';
+    }
+}
+
+// Install the app
+function installApp() {
+    // Hide the prompt
+    hideInstallPrompt();
+    
+    // Show the prompt if we have a deferred prompt
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        
+        // Wait for the user to respond to the prompt
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('User accepted the install prompt');
+            } else {
+                console.log('User dismissed the install prompt');
+            }
+            
+            // Clear the deferred prompt
+            deferredPrompt = null;
+        });
+    } else {
+        // If no deferred prompt, show instructions for manual installation
+        showManualInstallInstructions();
+    }
+}
+
+// Show manual installation instructions
+function showManualInstallInstructions() {
+    // Create instructions element
+    const instructions = document.createElement('div');
+    instructions.id = 'manual-install-instructions';
+    instructions.className = 'manual-install-instructions';
+    
+    // Determine device type
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isAndroid = /Android/.test(navigator.userAgent);
+    
+    // Set content based on device
+    if (isIOS) {
+        instructions.innerHTML = `
+            <div class="instructions-content">
+                <h3>Install on iOS</h3>
+                <ol>
+                    <li>Tap the Share button <img src="assets/images/ios-share.png" alt="Share button" class="instruction-icon"></li>
+                    <li>Scroll down and tap "Add to Home Screen"</li>
+                    <li>Tap "Add" in the top right corner</li>
+                </ol>
+                <button id="close-instructions" class="close-button">Got it</button>
+            </div>
+        `;
+    } else if (isAndroid) {
+        instructions.innerHTML = `
+            <div class="instructions-content">
+                <h3>Install on Android</h3>
+                <ol>
+                    <li>Tap the menu button <img src="assets/images/android-menu.png" alt="Menu button" class="instruction-icon"></li>
+                    <li>Tap "Add to Home screen" or "Install app"</li>
+                    <li>Follow the prompts to install</li>
+                </ol>
+                <button id="close-instructions" class="close-button">Got it</button>
+            </div>
+        `;
+    } else {
+        instructions.innerHTML = `
+            <div class="instructions-content">
+                <h3>Install on Desktop</h3>
+                <p>Click the install icon in your browser's address bar to install this app.</p>
+                <button id="close-instructions" class="close-button">Got it</button>
+            </div>
+        `;
+    }
+    
+    // Add to the document
+    document.body.appendChild(instructions);
+    
+    // Add event listener to close button
+    document.getElementById('close-instructions').addEventListener('click', () => {
+        instructions.remove();
+    });
+}
 
 // Check if we need to resume playback from previous session
 function checkResumePlayback() {
