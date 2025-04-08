@@ -14,7 +14,8 @@ const ASSETS_TO_CACHE = [
     '/assets/audio/white-noise.mp3',
     '/assets/audio/gentle-rain.mp3',
     '/assets/audio/coffee-shop.mp3',
-    '/assets/audio/ocean-waves.mp3'
+    '/assets/audio/ocean-waves.mp3',
+    '/audio-worklet.js'
 ];
 
 // Install event - cache assets
@@ -51,6 +52,31 @@ self.addEventListener('fetch', event => {
         return;
     }
 
+    // Special handling for audio files to ensure they continue playing in background
+    if (event.request.url.match(/\.(mp3|aac|wav|ogg)$/)) {
+        event.respondWith(
+            fetch(event.request)
+                .then(response => {
+                    // Clone the response
+                    const responseToCache = response.clone();
+                    
+                    // Cache the audio file
+                    caches.open(CACHE_NAME)
+                        .then(cache => {
+                            cache.put(event.request, responseToCache);
+                        });
+                    
+                    return response;
+                })
+                .catch(() => {
+                    // If network fails, try to get from cache
+                    return caches.match(event.request);
+                })
+        );
+        return;
+    }
+
+    // For all other requests, use the standard cache-first strategy
     event.respondWith(
         caches.match(event.request)
             .then(response => {
@@ -76,4 +102,37 @@ self.addEventListener('fetch', event => {
                 });
             })
     );
+});
+
+// Background sync for audio playback
+self.addEventListener('sync', event => {
+    if (event.tag === 'audio-playback') {
+        event.waitUntil(
+            // Send a message to all clients to keep audio playing
+            self.clients.matchAll().then(clients => {
+                clients.forEach(client => {
+                    client.postMessage({
+                        type: 'keep-audio-playing',
+                        timestamp: Date.now()
+                    });
+                });
+            })
+        );
+    }
+});
+
+// Handle messages from clients
+self.addEventListener('message', event => {
+    if (event.data && event.data.type === 'register-audio-playback') {
+        // Register for background sync
+        event.waitUntil(
+            self.registration.sync.register('audio-playback')
+                .then(() => {
+                    console.log('Background sync registered for audio playback');
+                })
+                .catch(err => {
+                    console.error('Background sync registration failed:', err);
+                })
+        );
+    }
 }); 

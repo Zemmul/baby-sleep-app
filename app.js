@@ -92,6 +92,14 @@ let nextButton;
 let fadeInterval = null;
 let lastVolume = 0.5; // Store the last volume level
 let audioCache = {}; // Cache for preloaded audio elements
+let wakeLock = null; // Wake lock object
+let audioSource = null; // Web Audio API source node
+let heartbeatInterval = null; // Interval to keep audio context alive
+let audioBuffers = {}; // Cache for audio buffers
+let batteryManager = null; // Battery status manager
+let backgroundPlaybackEnabled = true; // User preference for background playback
+let currentSoundIndex = null; // Store the current sound index
+let currentAudioBufferSource = null; // Store the current AudioBufferSource node
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
@@ -119,15 +127,231 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Set initial volume
     lastVolume = volumeSlider.value / 100;
+    
+    // Initialize battery monitoring
+    initBatteryMonitoring();
+    
+    // Request wake lock when playing
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Handle page visibility changes
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && isPlaying) {
+            resumeAudioContext();
+        }
+    });
+    
+    // Handle beforeunload event
+    window.addEventListener('beforeunload', () => {
+        if (isPlaying) {
+            // Save playback state to localStorage
+            localStorage.setItem('lastPlayedSound', currentSoundIndex);
+            localStorage.setItem('lastVolume', lastVolume);
+            localStorage.setItem('wasPlaying', 'true');
+        }
+    });
+    
+    // Check if we need to resume playback
+    checkResumePlayback();
 });
+
+// Check if we need to resume playback from previous session
+function checkResumePlayback() {
+    const wasPlaying = localStorage.getItem('wasPlaying') === 'true';
+    const lastPlayedSound = localStorage.getItem('lastPlayedSound');
+    const lastVolume = localStorage.getItem('lastVolume');
+    
+    if (wasPlaying && lastPlayedSound) {
+        // Restore volume
+        if (lastVolume) {
+            volumeSlider.value = lastVolume * 100;
+            updateVolume(lastVolume);
+        }
+        
+        // Resume playback
+        playSound(parseInt(lastPlayedSound));
+    }
+}
+
+// Initialize battery monitoring
+function initBatteryMonitoring() {
+    if ('getBattery' in navigator) {
+        navigator.getBattery().then(battery => {
+            batteryManager = battery;
+            
+            // Listen for battery level changes
+            battery.addEventListener('levelchange', () => {
+                handleBatteryLevelChange(battery.level);
+            });
+            
+            // Listen for charging status changes
+            battery.addEventListener('chargingchange', () => {
+                handleChargingChange(battery.charging);
+            });
+            
+            // Initial check
+            handleBatteryLevelChange(battery.level);
+            handleChargingChange(battery.charging);
+        });
+    }
+}
+
+// Handle battery level changes
+function handleBatteryLevelChange(level) {
+    // If battery is low and not charging, show a warning
+    if (level < 0.2 && !batteryManager.charging) {
+        showBatteryWarning();
+    }
+}
+
+// Handle charging status changes
+function handleChargingChange(isCharging) {
+    if (isCharging) {
+        // Hide battery warning if it's showing
+        hideBatteryWarning();
+    } else if (batteryManager.level < 0.2) {
+        // Show warning if battery is low and not charging
+        showBatteryWarning();
+    }
+}
+
+// Show battery warning
+function showBatteryWarning() {
+    // Create warning element if it doesn't exist
+    let warning = document.getElementById('battery-warning');
+    if (!warning) {
+        warning = document.createElement('div');
+        warning.id = 'battery-warning';
+        warning.className = 'battery-warning';
+        warning.innerHTML = `
+            <p>Low battery! Consider plugging in your device to keep the sleep sounds playing.</p>
+            <button id="dismiss-warning">Dismiss</button>
+        `;
+        document.body.appendChild(warning);
+        
+        // Add event listener to dismiss button
+        document.getElementById('dismiss-warning').addEventListener('click', hideBatteryWarning);
+    }
+    
+    // Show the warning
+    warning.style.display = 'block';
+}
+
+// Hide battery warning
+function hideBatteryWarning() {
+    const warning = document.getElementById('battery-warning');
+    if (warning) {
+        warning.style.display = 'none';
+    }
+}
+
+// Handle visibility change
+async function handleVisibilityChange() {
+    if (document.visibilityState === 'visible' && isPlaying) {
+        await requestWakeLock();
+        resumeAudioContext();
+    }
+}
+
+// Resume audio context
+function resumeAudioContext() {
+    if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume().then(() => {
+            console.log('Audio context resumed');
+        });
+    }
+}
+
+// Request wake lock
+async function requestWakeLock() {
+    try {
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            
+            // Re-request wake lock if it's released
+            wakeLock.addEventListener('release', () => {
+                if (isPlaying) {
+                    requestWakeLock();
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Wake Lock error:', err);
+    }
+}
+
+// Release wake lock
+function releaseWakeLock() {
+    if (wakeLock) {
+        wakeLock.release()
+            .then(() => {
+                wakeLock = null;
+            });
+    }
+}
+
+// Start heartbeat to keep audio context alive
+function startHeartbeat() {
+    // Clear any existing heartbeat
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+    }
+    
+    // Create a silent oscillator to keep the audio context alive
+    const silentOscillator = audioContext.createOscillator();
+    const silentGain = audioContext.createGain();
+    silentGain.gain.value = 0.0001; // Almost silent
+    silentOscillator.connect(silentGain);
+    silentGain.connect(audioContext.destination);
+    silentOscillator.start();
+    
+    // Store the oscillator for later cleanup
+    audioContext._silentOscillator = silentOscillator;
+    
+    // Set up periodic heartbeat
+    heartbeatInterval = setInterval(() => {
+        if (audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                console.log('Audio context resumed by heartbeat');
+            });
+        }
+    }, 10000); // Check every 10 seconds
+}
+
+// Stop heartbeat
+function stopHeartbeat() {
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+    }
+    
+    // Stop the silent oscillator
+    if (audioContext && audioContext._silentOscillator) {
+        audioContext._silentOscillator.stop();
+        audioContext._silentOscillator = null;
+    }
+}
 
 // Preload audio files
 function preloadAudio() {
     soundData.forEach(sound => {
+        // Create standard Audio element
         const audio = new Audio();
         audio.src = sound.audio;
         audio.preload = 'auto';
         audioCache[sound.id] = audio;
+        
+        // Also preload as AudioBuffer for more robust playback
+        fetch(sound.audio)
+            .then(response => response.arrayBuffer())
+            .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+            .then(audioBuffer => {
+                audioBuffers[sound.id] = audioBuffer;
+                console.log(`Preloaded audio buffer for ${sound.title}`);
+            })
+            .catch(error => {
+                console.error(`Error preloading audio buffer for ${sound.title}:`, error);
+            });
     });
 }
 
@@ -143,8 +367,23 @@ function initAudioContext() {
         
         // Set initial volume
         gainNode.gain.value = volumeSlider.value / 100;
+        
+        // Load audio worklet for background processing
+        loadAudioWorklet();
     } catch (e) {
         console.error('Web Audio API not supported:', e);
+    }
+}
+
+// Load audio worklet for background processing
+async function loadAudioWorklet() {
+    try {
+        if (audioContext.audioWorklet) {
+            await audioContext.audioWorklet.addModule('audio-worklet.js');
+            console.log('Audio worklet loaded successfully');
+        }
+    } catch (e) {
+        console.error('Error loading audio worklet:', e);
     }
 }
 
@@ -206,6 +445,7 @@ function handlePlayButtonClick(index) {
 // Play a sound
 function playSound(index) {
     const sound = soundData[index];
+    currentSoundIndex = index; // Store current sound index
     
     // Stop any currently playing audio
     if (currentAudio) {
@@ -228,10 +468,15 @@ function playSound(index) {
     // Connect to Web Audio API if available
     if (audioContext && gainNode) {
         try {
+            // Resume audio context if it's suspended
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
             // Check if already connected
             if (!currentAudio._connected) {
-                const source = audioContext.createMediaElementSource(currentAudio);
-                source.connect(gainNode);
+                audioSource = audioContext.createMediaElementSource(currentAudio);
+                audioSource.connect(gainNode);
                 currentAudio._connected = true;
             }
             gainNode.gain.value = 0; // Start at volume 0 for fade in
@@ -242,6 +487,12 @@ function playSound(index) {
     } else {
         currentAudio.volume = 0; // Fallback to standard volume control
     }
+    
+    // Request wake lock when playing
+    requestWakeLock();
+    
+    // Start heartbeat to keep audio context alive
+    startHeartbeat();
     
     // Play the audio
     const playPromise = currentAudio.play();
@@ -286,8 +537,36 @@ function playSound(index) {
             
         }).catch(error => {
             console.error('Error playing audio:', error);
+            
+            // Try fallback method using AudioBuffer if available
+            if (audioBuffers[sound.id]) {
+                playAudioBuffer(sound.id);
+            }
         });
     }
+}
+
+// Play audio using AudioBuffer (fallback method)
+function playAudioBuffer(soundId) {
+    if (!audioContext || !audioBuffers[soundId]) return;
+    
+    // Create buffer source
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffers[soundId];
+    source.loop = true;
+    
+    // Connect to gain node
+    source.connect(gainNode);
+    
+    // Start playback
+    source.start(0);
+    
+    // Store reference to stop later
+    currentAudioBufferSource = source;
+    
+    // Update UI
+    isPlaying = true;
+    updatePlayButtonUI();
 }
 
 // Pause the current sound
@@ -315,18 +594,47 @@ function pauseSound() {
                 currentAudio.pause();
                 isPlaying = false;
                 
+                // Stop audio buffer if it's playing
+                if (currentAudioBufferSource) {
+                    currentAudioBufferSource.stop();
+                    currentAudioBufferSource = null;
+                }
+                
+                // Release wake lock when paused
+                releaseWakeLock();
+                
+                // Stop heartbeat
+                stopHeartbeat();
+                
                 // Update UI
-                const cards = document.querySelectorAll('.sound-card');
-                cards.forEach(card => {
-                    card.classList.remove('playing');
-                    
-                    // Update play button to play
-                    const playButton = card.querySelector('.play-button svg');
-                    playButton.innerHTML = '<path d="M8 5v14l11-7z"/>';
-                });
+                updatePlayButtonUI();
             }
         }, 30); // Reduced interval for faster updates
     }
+}
+
+// Update play button UI
+function updatePlayButtonUI() {
+    const cards = document.querySelectorAll('.sound-card');
+    cards.forEach(card => {
+        if (isPlaying) {
+            card.classList.add('playing');
+            
+            // Update play button to pause
+            const playButton = card.querySelector('.play-button svg');
+            if (playButton) {
+                playButton.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+            }
+        } else {
+            card.classList.remove('playing');
+            
+            // Update play button to play
+            const playButton = card.querySelector('.play-button svg');
+            if (playButton) {
+                playButton.innerHTML = '<path d="M8 5v14l11-7z"/>';
+            }
+        }
+    });
 }
 
 // Set up volume control

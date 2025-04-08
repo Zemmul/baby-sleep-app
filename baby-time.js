@@ -52,41 +52,35 @@ function onPlayerStateChange(event) {
 
 // Load the playlist from YouTube
 function loadPlaylist() {
-    // In a real implementation, you would use the YouTube Data API to fetch the playlist
-    // For this example, we'll use a hardcoded list of videos from the playlist
-    
-    // This is a sample of videos from the Wyndham Libraries Online Baby Time playlist
-    // In a production app, you would fetch this dynamically from the YouTube API
-    playlistItems = [
-        {
-            id: 'dQw4w9WgXcQ', // This is a placeholder ID, replace with actual video IDs
-            title: 'Baby Rhyme Time - Welcome',
-            description: 'Welcome to Wyndham Libraries Online Baby Time!'
-        },
-        {
-            id: 'dQw4w9WgXcQ', // This is a placeholder ID, replace with actual video IDs
-            title: 'Baby Rhyme Time - Twinkle Twinkle Little Star',
-            description: 'Sing along to Twinkle Twinkle Little Star with Wyndham Libraries.'
-        },
-        {
-            id: 'dQw4w9WgXcQ', // This is a placeholder ID, replace with actual video IDs
-            title: 'Baby Rhyme Time - Incy Wincy Spider',
-            description: 'Sing along to Incy Wincy Spider with Wyndham Libraries.'
-        },
-        {
-            id: 'dQw4w9WgXcQ', // This is a placeholder ID, replace with actual video IDs
-            title: 'Baby Rhyme Time - Old MacDonald Had a Farm',
-            description: 'Sing along to Old MacDonald Had a Farm with Wyndham Libraries.'
-        },
-        {
-            id: 'dQw4w9WgXcQ', // This is a placeholder ID, replace with actual video IDs
-            title: 'Baby Rhyme Time - Five Little Ducks',
-            description: 'Sing along to Five Little Ducks with Wyndham Libraries.'
-        }
-    ];
-    
-    // Render the playlist
-    renderPlaylist();
+    const API_KEY = 'YOUR_YOUTUBE_API_KEY'; // You'll need to replace this with a real API key
+    const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${PLAYLIST_ID}&key=${API_KEY}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            playlistItems = data.items.map(item => ({
+                id: item.snippet.resourceId.videoId,
+                title: item.snippet.title,
+                description: item.snippet.description
+            }));
+            renderPlaylist();
+            // Play the first video automatically
+            if (playlistItems.length > 0) {
+                playVideo(0);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading playlist:', error);
+            // Fallback to sample videos if API fails
+            playlistItems = [
+                {
+                    id: 'dQw4w9WgXcQ',
+                    title: 'Sample Video 1',
+                    description: 'This is a sample video description.'
+                }
+            ];
+            renderPlaylist();
+        });
 }
 
 // Render the playlist in the UI
