@@ -585,6 +585,37 @@ async function initAudioContext() {
             }
         }, 5000); // Check every 5 seconds
         
+        // Set up iOS-specific audio session
+        if (typeof window.webkit !== 'undefined' && window.webkit.messageHandlers) {
+            // Request audio session for iOS
+            window.webkit.messageHandlers.audioSession.postMessage({
+                type: 'requestAudioSession',
+                category: 'playback',
+                mode: 'default',
+                options: ['mixWithOthers', 'duckOthers']
+            });
+        }
+
+        // Register service worker for background audio
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(registration => {
+                    console.log('ServiceWorker registration successful');
+                    
+                    // Set up message handling for the service worker
+                    navigator.serviceWorker.addEventListener('message', event => {
+                        if (event.data.type === 'audioState') {
+                            if (event.data.isPlaying && audioContext.state === 'suspended') {
+                                resumeAudioContext();
+                            }
+                        }
+                    });
+                })
+                .catch(err => {
+                    console.error('ServiceWorker registration failed:', err);
+                });
+        }
+        
         console.log('Audio context initialized successfully');
     } catch (error) {
         console.error('Error initializing audio context:', error);
@@ -669,6 +700,12 @@ function playSound(index) {
     currentAudio.currentTime = 0;
     currentAudio.loop = true;
     
+    // Set iOS-specific audio attributes
+    if (typeof currentAudio.webkitAudioContext !== 'undefined') {
+        currentAudio.setAttribute('playsinline', '');
+        currentAudio.setAttribute('webkit-playsinline', '');
+    }
+    
     // Connect to Web Audio API if available
     if (audioContext && gainNode) {
         try {
@@ -692,6 +729,15 @@ function playSound(index) {
                 audioContext._backgroundProcessor.port.postMessage({
                     type: 'volume',
                     volume: 0.0001
+                });
+            }
+
+            // Notify service worker about playback state
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'audioState',
+                    isPlaying: true,
+                    soundId: sound.id
                 });
             }
         } catch (e) {
@@ -719,6 +765,13 @@ function playSound(index) {
                 
                 // Start fade in
                 fadeIn();
+                
+                // Request iOS audio session if needed
+                if (typeof window.webkit !== 'undefined' && window.webkit.messageHandlers) {
+                    window.webkit.messageHandlers.audioSession.postMessage({
+                        type: 'activateAudioSession'
+                    });
+                }
             })
             .catch(error => {
                 console.error('Error playing audio:', error);
@@ -823,6 +876,13 @@ function pauseSound() {
                 
                 // Update UI
                 updatePlayButtonUI();
+                
+                // Deactivate iOS audio session if needed
+                if (typeof window.webkit !== 'undefined' && window.webkit.messageHandlers) {
+                    window.webkit.messageHandlers.audioSession.postMessage({
+                        type: 'deactivateAudioSession'
+                    });
+                }
             }
         }, 30); // Reduced interval for faster updates
     }

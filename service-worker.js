@@ -27,6 +27,7 @@ self.addEventListener('install', event => {
                 return cache.addAll(ASSETS_TO_CACHE);
             })
     );
+    self.skipWaiting();
 });
 
 // Activate event - clean up old caches
@@ -43,6 +44,7 @@ self.addEventListener('activate', event => {
             );
         })
     );
+    event.waitUntil(clients.claim());
 });
 
 // Fetch event - serve from cache, fallback to network
@@ -135,4 +137,41 @@ self.addEventListener('message', event => {
                 })
         );
     }
-}); 
+});
+
+// Handle messages from the main thread
+self.addEventListener('message', (event) => {
+    if (event.data.type === 'audioState') {
+        // Store the current audio state
+        self.audioState = {
+            isPlaying: event.data.isPlaying,
+            soundId: event.data.soundId
+        };
+        
+        // Broadcast the state to all clients
+        self.clients.matchAll().then(clients => {
+            clients.forEach(client => {
+                client.postMessage({
+                    type: 'audioState',
+                    isPlaying: event.data.isPlaying,
+                    soundId: event.data.soundId
+                });
+            });
+        });
+    }
+});
+
+// Keep the service worker alive with a periodic heartbeat
+setInterval(() => {
+    if (self.audioState && self.audioState.isPlaying) {
+        self.clients.matchAll().then(clients => {
+            clients.forEach(client => {
+                client.postMessage({
+                    type: 'audioState',
+                    isPlaying: true,
+                    soundId: self.audioState.soundId
+                });
+            });
+        });
+    }
+}, 5000); 
