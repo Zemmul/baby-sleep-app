@@ -415,18 +415,34 @@ function hideBatteryWarning() {
 
 // Handle visibility change
 async function handleVisibilityChange() {
-    if (document.visibilityState === 'visible' && isPlaying) {
-        await requestWakeLock();
-        resumeAudioContext();
+    if (isPlaying) {
+        if (document.visibilityState === 'visible') {
+            await requestWakeLock();
+            resumeAudioContext();
+        } else if (isPWA) {
+            // In PWA mode, maintain wake lock even when in background
+            await requestWakeLock();
+        }
     }
 }
 
 // Resume audio context
-function resumeAudioContext() {
+async function resumeAudioContext() {
     if (audioContext && audioContext.state === 'suspended') {
-        audioContext.resume().then(() => {
+        try {
+            await audioContext.resume();
             console.log('Audio context resumed');
-        });
+            
+            // Update background processor state
+            if (audioContext._backgroundProcessor) {
+                audioContext._backgroundProcessor.port.postMessage({
+                    type: 'playbackState',
+                    isPlaying: isPlaying
+                });
+            }
+        } catch (error) {
+            console.error('Error resuming audio context:', error);
+        }
     }
 }
 
@@ -434,7 +450,13 @@ function resumeAudioContext() {
 async function requestWakeLock() {
     try {
         if ('wakeLock' in navigator) {
+            // Request both screen and system wake lock
             wakeLock = await navigator.wakeLock.request('screen');
+            
+            // Also request system wake lock if available
+            if ('systemWakeLock' in navigator) {
+                await navigator.systemWakeLock.request();
+            }
             
             // Re-request wake lock if it's released
             wakeLock.addEventListener('release', () => {
@@ -442,6 +464,9 @@ async function requestWakeLock() {
                     requestWakeLock();
                 }
             });
+            
+            // Log wake lock status
+            console.log('Wake Lock active:', wakeLock !== null);
         }
     } catch (err) {
         console.error('Wake Lock error:', err);
@@ -454,6 +479,7 @@ function releaseWakeLock() {
         wakeLock.release()
             .then(() => {
                 wakeLock = null;
+                console.log('Wake Lock released');
             });
     }
 }
@@ -465,23 +491,18 @@ function startHeartbeat() {
         clearInterval(heartbeatInterval);
     }
     
-    // Create a silent oscillator to keep the audio context alive
-    const silentOscillator = audioContext.createOscillator();
-    const silentGain = audioContext.createGain();
-    silentGain.gain.value = 0.0001; // Almost silent
-    silentOscillator.connect(silentGain);
-    silentGain.connect(audioContext.destination);
-    silentOscillator.start();
-    
-    // Store the oscillator for later cleanup
-    audioContext._silentOscillator = silentOscillator;
+    // Update background processor state
+    if (audioContext && audioContext._backgroundProcessor) {
+        audioContext._backgroundProcessor.port.postMessage({
+            type: 'playbackState',
+            isPlaying: true
+        });
+    }
     
     // Set up periodic heartbeat
     heartbeatInterval = setInterval(() => {
-        if (audioContext.state === 'suspended') {
-            audioContext.resume().then(() => {
-                console.log('Audio context resumed by heartbeat');
-            });
+        if (audioContext && audioContext.state === 'suspended' && isPlaying) {
+            resumeAudioContext();
         }
     }, 10000); // Check every 10 seconds
 }
@@ -493,10 +514,12 @@ function stopHeartbeat() {
         heartbeatInterval = null;
     }
     
-    // Stop the silent oscillator
-    if (audioContext && audioContext._silentOscillator) {
-        audioContext._silentOscillator.stop();
-        audioContext._silentOscillator = null;
+    // Update background processor state
+    if (audioContext && audioContext._backgroundProcessor) {
+        audioContext._backgroundProcessor.port.postMessage({
+            type: 'playbackState',
+            isPlaying: false
+        });
     }
 }
 
@@ -524,34 +547,47 @@ function preloadAudio() {
 }
 
 // Initialize Web Audio API
-function initAudioContext() {
+async function initAudioContext() {
     try {
-        // Create audio context
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // Create audio context with latencyHint for better performance
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({
+            latencyHint: 'playback'
+        });
         
         // Create gain node for volume control
         gainNode = audioContext.createGain();
         gainNode.connect(audioContext.destination);
         
-        // Set initial volume
-        gainNode.gain.value = volumeSlider.value / 100;
+        // Load and register the audio worklet
+        await audioContext.audioWorklet.addModule('audio-worklet.js');
         
-        // Load audio worklet for background processing
-        loadAudioWorklet();
-    } catch (e) {
-        console.error('Web Audio API not supported:', e);
-    }
-}
-
-// Load audio worklet for background processing
-async function loadAudioWorklet() {
-    try {
-        if (audioContext.audioWorklet) {
-            await audioContext.audioWorklet.addModule('audio-worklet.js');
-            console.log('Audio worklet loaded successfully');
-        }
-    } catch (e) {
-        console.error('Error loading audio worklet:', e);
+        // Create background audio processor
+        const backgroundProcessor = new AudioWorkletNode(audioContext, 'background-audio-processor');
+        backgroundProcessor.connect(audioContext.destination);
+        
+        // Handle messages from the processor
+        backgroundProcessor.port.onmessage = (event) => {
+            if (event.data.type === 'tick') {
+                // Check if audio context is suspended and resume if needed
+                if (audioContext.state === 'suspended' && isPlaying) {
+                    resumeAudioContext();
+                }
+            }
+        };
+        
+        // Store the processor for later use
+        audioContext._backgroundProcessor = backgroundProcessor;
+        
+        // Set up periodic checks for audio context state
+        setInterval(() => {
+            if (isPlaying && audioContext.state === 'suspended') {
+                resumeAudioContext();
+            }
+        }, 5000); // Check every 5 seconds
+        
+        console.log('Audio context initialized successfully');
+    } catch (error) {
+        console.error('Error initializing audio context:', error);
     }
 }
 
@@ -613,7 +649,7 @@ function handlePlayButtonClick(index) {
 // Play a sound
 function playSound(index) {
     const sound = soundData[index];
-    currentSoundIndex = index; // Store current sound index
+    currentSoundIndex = index;
     
     // Stop any currently playing audio
     if (currentAudio) {
@@ -631,7 +667,7 @@ function playSound(index) {
     
     // Reset the audio to the beginning
     currentAudio.currentTime = 0;
-    currentAudio.loop = true; // Enable looping
+    currentAudio.loop = true;
     
     // Connect to Web Audio API if available
     if (audioContext && gainNode) {
@@ -647,13 +683,23 @@ function playSound(index) {
                 audioSource.connect(gainNode);
                 currentAudio._connected = true;
             }
-            gainNode.gain.value = 0; // Start at volume 0 for fade in
+            
+            // Set initial volume for fade in
+            gainNode.gain.value = 0;
+            
+            // Update background processor volume
+            if (audioContext._backgroundProcessor) {
+                audioContext._backgroundProcessor.port.postMessage({
+                    type: 'volume',
+                    volume: 0.0001
+                });
+            }
         } catch (e) {
             console.error('Error connecting audio to Web Audio API:', e);
-            currentAudio.volume = 0; // Fallback to standard volume control
+            currentAudio.volume = 0;
         }
     } else {
-        currentAudio.volume = 0; // Fallback to standard volume control
+        currentAudio.volume = 0;
     }
     
     // Request wake lock when playing
@@ -666,51 +712,19 @@ function playSound(index) {
     const playPromise = currentAudio.play();
     
     if (playPromise !== undefined) {
-        playPromise.then(() => {
-            isPlaying = true;
-            
-            // Update UI
-            const cards = document.querySelectorAll('.sound-card');
-            const activeCard = cards[index];
-            if (activeCard) {
-                activeCard.classList.add('playing');
+        playPromise
+            .then(() => {
+                isPlaying = true;
+                updatePlayButtonUI();
                 
-                // Update play button to pause
-                const playButton = activeCard.querySelector('.play-button svg');
-                playButton.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
-            }
-
-            // Fade in the audio
-            const targetVolume = volumeSlider.value / 100;
-            let currentVolume = 0;
-            const fadeStep = 0.1; // Increased fade step for faster fade in
-            
-            // Clear any existing fade interval
-            if (fadeInterval) {
-                clearInterval(fadeInterval);
-            }
-            
-            fadeInterval = setInterval(() => {
-                if (currentVolume < targetVolume) {
-                    currentVolume = Math.min(currentVolume + fadeStep, targetVolume);
-                    if (gainNode) {
-                        gainNode.gain.value = currentVolume;
-                    } else {
-                        currentAudio.volume = currentVolume;
-                    }
-                } else {
-                    clearInterval(fadeInterval);
-                }
-            }, 30); // Reduced interval for faster updates
-            
-        }).catch(error => {
-            console.error('Error playing audio:', error);
-            
-            // Try fallback method using AudioBuffer if available
-            if (audioBuffers[sound.id]) {
-                playAudioBuffer(sound.id);
-            }
-        });
+                // Start fade in
+                fadeIn();
+            })
+            .catch(error => {
+                console.error('Error playing audio:', error);
+                isPlaying = false;
+                updatePlayButtonUI();
+            });
     }
 }
 
