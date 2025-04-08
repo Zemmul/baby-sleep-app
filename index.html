@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Your secret to a happy baby">
+    <meta name="description" content="Baby Sleep & Rhyme Time - Help your baby sleep better with soothing sounds and nursery rhymes">
     <meta name="theme-color" content="#FFF1E6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -19,38 +19,60 @@
     <link rel="icon" href="assets/images/icon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
         <img src="assets/images/hero-baby.svg" alt="Peaceful baby meditating" class="hero-image">
         
         <header>
-            <h1>Your secret to a happy baby</h1>
-            <p class="subtitle">Pick and choose what you need right now</p>
+            <h1>Baby Sleep & Rhyme Time</h1>
+            <p class="subtitle">Soothing sounds and nursery rhymes for your little one</p>
             <img src="assets/images/chevron-down.svg" alt="" class="chevron-down" aria-hidden="true">
         </header>
         
         <main>
-            <div class="menu-options">
-                <a href="sleep-sounds.html" class="menu-option">
-                    <div class="menu-icon">
+            <div class="tile-grid">
+                <a href="sleep-sounds.html" class="tile">
+                    <div class="tile-icon">
                         <img src="assets/images/sleep-sounds.png" alt="Sleep Sounds">
                     </div>
                     <h2>Sleep Sounds</h2>
-                    <p>Soothing sounds to help your baby fall asleep</p>
+                    <p>Soothing sounds to help your baby sleep</p>
                 </a>
                 
-                <a href="baby-time.html" class="menu-option">
-                    <div class="menu-icon">
+                <a href="baby-time.html" class="tile">
+                    <div class="tile-icon">
                         <img src="assets/images/baby-time.png" alt="Baby Time">
                     </div>
                     <h2>Baby Time</h2>
                     <p>Fun videos to watch with your baby</p>
                 </a>
+                
+                <a href="baby-days-out.html" class="tile">
+                    <div class="tile-icon">
+                        <img src="assets/images/map.svg" alt="Baby Days Out">
+                    </div>
+                    <h2>Baby Days Out</h2>
+                    <p>Find parent facilities and baby events near you</p>
+                </a>
             </div>
         </main>
+        
+        <footer>
+            <p>Made with ❤️ for parents and babies</p>
+        </footer>
     </div>
     
-    <script src="app.js?v=1.0.0"></script>
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => console.log('ServiceWorker registered'))
+                    .catch(err => console.log('ServiceWorker registration failed:', err));
+            });
+        }
+    </script>
 </body>
 </html> 

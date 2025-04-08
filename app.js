@@ -3,77 +3,77 @@ const soundData = [
     {
         id: 'rain',
         title: 'Rain',
-        description: 'Gentle rainfall',
+        description: 'The soft, steady sound of rain creates a calming rhythm that mimics the sounds babies hear inside the womb. It helps mask sudden noises that might startle them',
         image: 'assets/images/rain.jpg',
         audio: 'assets/audio/rain.aac'
     },
     {
         id: 'ocean',
         title: 'Ocean',
-        description: 'Calm ocean waves',
+        description: 'The repetitive crashing and pulling of waves is soothing and rhythmic, creating a natural "lull" that helps regulate a baby\'s breathing and heartbeat.',
         image: 'assets/images/ocean.jpg',
         audio: 'assets/audio/ocean.aac'
     },
     {
         id: 'fireplace',
         title: 'Fireplace',
-        description: 'Crackling fireplace',
+        description: 'The soft crackling of a fire sounds cozy and comforting, promoting warmth and security, like being held close.',
         image: 'assets/images/fireplace.jpg',
         audio: 'assets/audio/fireplace.aac'
     },
     {
         id: 'birds',
         title: 'Birds',
-        description: 'Morning birdsong',
+        description: 'Gentle bird songs can create a peaceful, natural atmosphere, helping babies feel safe and connected to the world around them.',
         image: 'assets/images/birds.jpg',
         audio: 'assets/audio/birds.aac'
     },
     {
         id: 'heartbeat',
         title: 'Heartbeat',
-        description: 'Soothing heartbeat',
+        description: 'Babies are used to hearing their mother\'s heartbeat in the womb. Replaying a heartbeat sound gives them a deep sense of familiarity and safety.',
         image: 'assets/images/heartbeart.jpg',
         audio: 'assets/audio/heartbeat.aac'
     },
     {
         id: 'stream',
         title: 'Stream',
-        description: 'Flowing stream',
+        description: 'The flowing sound of a stream mimics a natural environment and provides steady, gentle white noise that helps mask background disturbances.',
         image: 'assets/images/stream.jpg',
         audio: 'assets/audio/stream.aac'
     },
     {
         id: 'vacuum',
         title: 'Vacuum',
-        description: 'Vacuum cleaner',
+        description: 'Strangely enough, vacuums create a deep, consistent hum that babies find very similar to the rushing blood sounds in the womb. Many babies instantly relax or even fall asleep to it! ',
         image: 'assets/images/vacuum.jpg',
         audio: 'assets/audio/vacuum.aac'
     },
     {
         id: 'whitenoise',
         title: 'White Noise',
-        description: 'White noise',
+        description: 'White noise is a blend of all sound frequencies at once. It smooths over sharp sounds (like a door closing) and creates a cocoon of calmness. ',
         image: 'assets/images/whitenoise.jpg',
         audio: 'assets/audio/whitenoise.aac'
     },
     {
         id: 'hair-dryer',
         title: 'Hair Dryer',
-        description: 'Hair dryer sound',
+        description: 'Like a vacuum, the hair dryer\'s hum is low, consistent, and womb-like. It can quickly soothe fussy or overstimulated babies.',
         image: 'assets/images/hair-dryer.jpg',
         audio: 'assets/audio/hair-dryer.aac'
     },
     {
         id: 'shush',
         title: 'Shush',
-        description: 'Shushing sound',
+        description: 'Saying "shhh" mimics the sounds of blood flow babies hear inside the womb. It\'s familiar and rhythmic, reassuring them they\'re safe.',
         image: 'assets/images/shush.jpg',
         audio: 'assets/audio/shush.aac'
     },
     {
         id: 'coffee-shop',
         title: 'Coffee Shop',
-        description: 'Coffee shop ambiance',
+        description: 'Soft background chatter and clinking noises can simulate a familiar "busy" environment. It can feel cozy and safe if it\'s low and gentle.',
         image: 'assets/images/coffee-shop.jpg',
         audio: 'assets/audio/coffee-shop.aac'
     }
@@ -649,14 +649,72 @@ async function initAudioContext() {
 // Initialize sound cards
 function initializeSoundCards() {
     // Clear existing content
-    const existingCards = soundGrid.querySelectorAll('.sound-card');
-    existingCards.forEach(card => card.remove());
+    soundGrid.innerHTML = '';
     
     // Add data-index attribute to each card
     soundData.forEach((sound, index) => {
         const card = createSoundCard(sound, index);
         soundGrid.appendChild(card);
     });
+    
+    // Add scroll event listener to handle centering
+    soundGrid.addEventListener('scroll', handleScroll);
+    
+    // Initial scroll to center the first card
+    setTimeout(() => {
+        centerFirstCard();
+    }, 100);
+}
+
+// Center the first card
+function centerFirstCard() {
+    const firstCard = soundGrid.querySelector('.sound-card');
+    if (firstCard) {
+        const cardWidth = firstCard.offsetWidth;
+        const containerWidth = soundGrid.offsetWidth;
+        const scrollPosition = (cardWidth + 20) / 2 - containerWidth / 2;
+        
+        soundGrid.scrollTo({
+            left: scrollPosition,
+            behavior: 'instant'
+        });
+    }
+}
+
+// Handle scroll events to detect when we reach the end
+function handleScroll() {
+    const scrollLeft = soundGrid.scrollLeft;
+    const scrollWidth = soundGrid.scrollWidth;
+    const clientWidth = soundGrid.clientWidth;
+    
+    // Check if we're at the beginning
+    if (scrollLeft < 10) {
+        // We're at the beginning, ensure first card is centered
+        centerFirstCard();
+    }
+    
+    // Check if we're at the end
+    if (scrollLeft + clientWidth >= scrollWidth - 10) {
+        // We're at the end, center the last card
+        centerLastCard();
+    }
+}
+
+// Center the last card
+function centerLastCard() {
+    const cards = soundGrid.querySelectorAll('.sound-card');
+    const lastCard = cards[cards.length - 1];
+    
+    if (lastCard) {
+        const cardWidth = lastCard.offsetWidth;
+        const containerWidth = soundGrid.offsetWidth;
+        const scrollPosition = soundGrid.scrollWidth - containerWidth - (cardWidth + 20) / 2 + containerWidth / 2;
+        
+        soundGrid.scrollTo({
+            left: scrollPosition,
+            behavior: 'instant'
+        });
+    }
 }
 
 // Create a sound card
@@ -693,11 +751,22 @@ function createSoundCard(sound, index) {
 
 // Handle play button click
 function handlePlayButtonClick(index) {
-    // Toggle play/pause
-    if (isPlaying) {
+    // If a different sound is currently playing, pause it first
+    if (isPlaying && currentSoundIndex !== index) {
+        // Pause the current sound
         pauseSound();
+        
+        // Play the new sound after a short delay to ensure the previous sound is fully stopped
+        setTimeout(() => {
+            playSound(index);
+        }, 100);
     } else {
-        playSound(index);
+        // Toggle play/pause for the current sound
+        if (isPlaying) {
+            pauseSound();
+        } else {
+            playSound(index);
+        }
     }
 }
 
@@ -915,19 +984,24 @@ function pauseSound() {
 // Update play button UI
 function updatePlayButtonUI() {
     const cards = document.querySelectorAll('.sound-card');
-    cards.forEach(card => {
-        if (isPlaying) {
+    cards.forEach((card, index) => {
+        // Check if this is the currently playing card
+        const isCurrentCard = index === currentSoundIndex;
+        
+        if (isPlaying && isCurrentCard) {
+            // Only add playing class to the current card
             card.classList.add('playing');
             
-            // Update play button to pause
+            // Update play button to pause for the current card
             const playButton = card.querySelector('.play-button svg');
             if (playButton) {
                 playButton.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
             }
         } else {
+            // Remove playing class from all cards
             card.classList.remove('playing');
             
-            // Update play button to play
+            // Update play button to play for all cards
             const playButton = card.querySelector('.play-button svg');
             if (playButton) {
                 playButton.innerHTML = '<path d="M8 5v14l11-7z"/>';
@@ -1059,4 +1133,9 @@ function scrollCarousel(direction) {
             behavior: 'smooth'
         });
     }
+    
+    // Check scroll position after animation completes
+    setTimeout(() => {
+        handleScroll();
+    }, 500);
 } 

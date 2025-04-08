@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Find nearby parent facilities and baby events">
+    <title>Baby Days Out - Find Parent Facilities and Baby Events</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="baby-days-out.js" defer></script>
+    <style>
+        /* Map styles */
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        /* Location search styles */
+        .location-search {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .location-search input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .location-search button {
+            padding: 10px 20px;
+            background-color: #FDA964;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .location-search button:hover {
+            background-color: #e6954a;
+        }
+        
+        /* Location error styles */
+        .location-error {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background-color: #ffebee;
+            color: #c62828;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        /* Filter buttons styles */
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-button {
+            padding: 8px 16px;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .filter-button.active {
+            background-color: #FDA964;
+            color: white;
+            border-color: #FDA964;
+        }
+        
+        /* Directory styles */
+        .directory {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .directory-item {
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .directory-item:hover {
+            transform: translateY(-2px);
+        }
+        
+        .directory-item h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .directory-item p {
+            margin: 10px 0;
+            color: #666;
+        }
+        
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .tag {
+            padding: 4px 8px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        /* Loading and no results styles */
+        .loading, .no-results {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="back-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 18l-6-6 6-6"></path>
+            </svg>
+        </a>
+        <h1>Baby Days Out</h1>
+        <p class="subtitle">Find parent facilities and baby events near you</p>
+    </header>
+    
+    <main>
+        <div class="location-search">
+            <input type="text" id="location-input" placeholder="Enter your location">
+            <button id="search-button" style="background-color: #FDA964;">Search</button>
+        </div>
+        
+        <div id="location-error" class="location-error">
+            <span>Unable to get your location</span>
+            <button id="retry-location">Retry</button>
+        </div>
+        
+        <div id="map"></div>
+        
+        <div class="filter-buttons">
+            <button class="filter-button active" data-filter="all" style="background-color: #FDA964; border-color: #FDA964;">All</button>
+            <button class="filter-button" data-filter="facilities">Parent Facilities</button>
+            <button class="filter-button" data-filter="events">Baby Events</button>
+            <button class="filter-button" data-filter="today">Today</button>
+            <button class="filter-button" data-filter="tomorrow">Tomorrow</button>
+            <button class="filter-button" data-filter="weekend">This Weekend</button>
+        </div>
+        
+        <div id="directory" class="directory">
+            <div class="loading">Loading...</div>
+        </div>
+    </main>
+</body>
+</html> 
