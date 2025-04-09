@@ -10,169 +10,125 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="toilet-map-api.js" type="module" defer></script>
     <script src="baby-days-out.js" defer></script>
-    <style>
-        /* Map styles */
-        #map {
-            height: 400px;
-            width: 100%;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        
-        /* Location search styles */
-        .location-search {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .location-search input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        
-        .location-search button {
-            padding: 10px 20px;
-            background-color: #FDA964;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        
-        .location-search button:hover {
-            background-color: #e6954a;
-        }
-        
-        /* Filter buttons styles */
-        .filter-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .filter-button {
-            padding: 8px 16px;
-            background-color: #f5f5f5;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        
-        .filter-button.active {
-            background-color: #FDA964;
-            color: white;
-            border-color: #FDA964;
-        }
-        
-        /* Directory styles */
-        .directory {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        
-        .directory-item {
-            padding: 20px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        
-        .directory-item:hover {
-            transform: translateY(-2px);
-        }
-        
-        .directory-item h3 {
-            margin-top: 0;
-            color: #333;
-        }
-        
-        .directory-item p {
-            margin: 10px 0;
-            color: #666;
-        }
-        
-        .tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-top: 10px;
-        }
-        
-        .tag {
-            padding: 4px 8px;
-            background-color: #f0f0f0;
-            border-radius: 4px;
-            font-size: 12px;
-            color: #666;
-        }
-        
-        /* Loading and no results styles */
-        .loading, .no-results {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-        
-        /* Toilet specific styles */
-        .toilet-icon {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            background-color: #4CAF50;
-            border-radius: 50%;
-            margin-right: 5px;
-            vertical-align: middle;
-        }
-        
-        .toilet-info {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px dashed #ddd;
-            font-size: 0.9em;
-        }
-    </style>
 </head>
-<body>
-    <header>
-        <a href="index.html" class="back-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M15 18l-6-6 6-6"></path>
-            </svg>
-        </a>
-        <h1>Baby Days Out</h1>
-        <p class="subtitle">Find parent facilities and baby events near you</p>
-    </header>
-    
+<body class="map-page">
     <main>
-        <div class="location-search">
-            <input type="text" id="location-input" placeholder="Enter your location">
-            <button id="search-button">Search</button>
-        </div>
-        
         <div id="map"></div>
         
-        <div class="filter-buttons">
-            <button class="filter-button active" data-filter="all">All</button>
-            <button class="filter-button" data-filter="facilities">Parent Facilities</button>
-            <button class="filter-button" data-filter="toilets">Toilets</button>
-            <button class="filter-button" data-filter="events">Baby Events</button>
-            <button class="filter-button" data-filter="today">Today</button>
-            <button class="filter-button" data-filter="tomorrow">Tomorrow</button>
-            <button class="filter-button" data-filter="weekend">This Weekend</button>
-        </div>
-        
-        <div id="directory" class="directory">
-            <div class="loading">Loading...</div>
+        <div class="sidebar">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6"></path>
+                </svg>
+            </button>
+            
+            <div class="sidebar-header">
+                <a href="index.html" class="back-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 18l-6-6 6-6"></path>
+                    </svg>
+                </a>
+                <div>
+                    <h1>Baby Days Out</h1>
+                    <p class="subtitle">Find parent facilities and baby events near you</p>
+                </div>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="location-search">
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="location-input" placeholder="Enter your location">
+                    </div>
+                    <div class="search-suggestions" id="search-suggestions"></div>
+                </div>
+                
+                <div class="sidebar-tabs">
+                    <div class="sidebar-tab active" data-tab="list">List</div>
+                    <div class="sidebar-tab" data-tab="filter">Filter</div>
+                </div>
+                
+                <div class="sidebar-tab-content" id="list-tab">
+                    <div id="directory" class="directory">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-tab-content" id="filter-tab" style="display: none;">
+                    <div class="filter-checkboxes">
+                        <div class="reset-filters">
+                            <a href="#" id="reset-filters">Reset to Default</a>
+                        </div>
+                        
+                        <div class="toggle-group">
+                            <div class="toggle-item">
+                                <label class="toggle-label">
+                                    <span class="toggle-text">
+                                        <svg class="filter-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="12" cy="7" r="4"></circle>
+                                            <path d="M3 21h18"></path>
+                                            <path d="M12 11v4"></path>
+                                            <path d="M10 13h4"></path>
+                                        </svg>
+                                        Parent Facilities
+                                    </span>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="filter-facilities" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div class="toggle-item">
+                                <label class="toggle-label">
+                                    <span class="toggle-text">
+                                        <svg class="filter-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                            <path d="M7 7h10"></path>
+                                            <path d="M7 12h10"></path>
+                                            <path d="M7 17h10"></path>
+                                        </svg>
+                                        Toilets
+                                    </span>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="filter-toilets" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div class="toggle-item">
+                                <label class="toggle-label">
+                                    <span class="toggle-text">
+                                        <svg class="filter-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                                        </svg>
+                                        Baby Events
+                                    </span>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="filter-events" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div class="date-filters">
+                                <div class="filter-buttons" id="date-filters">
+                                    <button class="filter-button" data-filter="today">Today</button>
+                                    <button class="filter-button" data-filter="tomorrow">Tomorrow</button>
+                                    <button class="filter-button" data-filter="weekend">This Weekend</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 </body>

@@ -763,9 +763,9 @@ function handlePlayButtonClick(index) {
     } else {
         // Toggle play/pause for the current sound
         if (isPlaying) {
-            pauseSound();
-        } else {
-            playSound(index);
+        pauseSound();
+    } else {
+        playSound(index);
         }
     }
 }
@@ -853,7 +853,7 @@ function playSound(index) {
     if (playPromise !== undefined) {
         playPromise
             .then(() => {
-                isPlaying = true;
+            isPlaying = true;
                 updatePlayButtonUI();
                 
                 // Start fade in
@@ -877,30 +877,30 @@ function playSound(index) {
                 }
             });
     }
-}
-
-// Fade in the audio
-function fadeIn() {
-    const targetVolume = volumeSlider.value / 100;
-    let currentVolume = 0;
-    const fadeStep = 0.1;
-    
-    // Clear any existing fade interval
-    if (fadeInterval) {
-        clearInterval(fadeInterval);
-    }
-    
-    fadeInterval = setInterval(() => {
-        if (currentVolume < targetVolume) {
-            currentVolume = Math.min(currentVolume + fadeStep, targetVolume);
-            if (gainNode) {
-                gainNode.gain.value = currentVolume;
-            } else {
-                currentAudio.volume = currentVolume;
             }
-        } else {
-            clearInterval(fadeInterval);
-        }
+
+            // Fade in the audio
+function fadeIn() {
+            const targetVolume = volumeSlider.value / 100;
+            let currentVolume = 0;
+    const fadeStep = 0.1;
+            
+            // Clear any existing fade interval
+            if (fadeInterval) {
+                clearInterval(fadeInterval);
+            }
+            
+            fadeInterval = setInterval(() => {
+                if (currentVolume < targetVolume) {
+                    currentVolume = Math.min(currentVolume + fadeStep, targetVolume);
+                    if (gainNode) {
+                        gainNode.gain.value = currentVolume;
+                    } else {
+                        currentAudio.volume = currentVolume;
+                    }
+                } else {
+                    clearInterval(fadeInterval);
+                }
     }, 30);
 }
 

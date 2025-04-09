@@ -1,10 +1,12 @@
-// Map and location variables
+// Global variables
 let map;
-let userMarker;
-let currentLocation = null;
 let markers = [];
 let places = [];
-let selectedMarker = null; // Track the currently selected marker
+let currentLocation = null;
+let currentFilter = 'all';
+let activeFilters = ['facilities', 'toilets', 'events']; // Track active filters
+let directoryContainer;
+let searchMarker = null; // Add a variable to track the search marker
 
 // Melbourne coordinates as default
 const MELBOURNE_COORDS = {
@@ -15,9 +17,13 @@ const MELBOURNE_COORDS = {
 // DOM elements
 const mapElement = document.getElementById('map');
 const locationInput = document.getElementById('location-input');
-const searchButton = document.getElementById('search-button');
-const directoryContainer = document.getElementById('directory');
+const searchSuggestions = document.getElementById('search-suggestions');
 const filterButtons = document.querySelectorAll('.filter-button');
+const filterFacilitiesCheckbox = document.getElementById('filter-facilities');
+const filterToiletsCheckbox = document.getElementById('filter-toilets');
+const filterEventsCheckbox = document.getElementById('filter-events');
+const resetFiltersLink = document.getElementById('reset-filters');
+const sidebarToggle = document.getElementById('sidebar-toggle');
 
 // Date helper functions
 function isToday(dateString) {
@@ -46,98 +52,335 @@ function isWeekend(dateString) {
     return day === 0 || day === 6; // Saturday or Sunday
 }
 
+// Wait for the ToiletMapAPI to be initialized
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM loaded, initializing map...');
+    
+    // Wait a moment for the ToiletMapAPI to be initialized
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Initialize the map
+    initMap();
+    
+    // Set up event listeners
+    setupEventListeners();
+});
+
 // Initialize the map
 function initMap() {
     console.log('Initializing map...');
     
-    // Initialize map centered on Melbourne, Australia
-    map = L.map('map').setView([MELBOURNE_COORDS.lat, MELBOURNE_COORDS.lng], 13);
+    // Get the directory container
+    directoryContainer = document.getElementById('directory');
     
-    // Add Carto Voyager style (similar to Google Maps)
+    // Initialize the map centered on Melbourne
+    map = L.map('map', {
+        zoomControl: false, // We'll add custom zoom control
+        attributionControl: false // We'll add custom attribution
+    }).setView([-37.8136, 144.9631], 13);
+    
+    // Add Google Maps-like tiles
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 20,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
     }).addTo(map);
     
-    // Add user location marker at Melbourne
-    userMarker = L.marker([MELBOURNE_COORDS.lat, MELBOURNE_COORDS.lng], {
-        icon: L.divIcon({
-            className: 'user-marker',
-            html: '<div style="background-color: #FDA964; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>',
-            iconSize: [16, 16],
-            iconAnchor: [8, 8]
-        })
+    // Add custom zoom control to bottom right
+    L.control.zoom({
+        position: 'bottomright'
     }).addTo(map);
     
-    // Add event listeners
-    searchButton.addEventListener('click', searchLocation);
+    // Add location finder button
+    const locationButton = L.control({position: 'bottomright'});
+    locationButton.onAdd = function() {
+        const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+        div.innerHTML = `
+            <a href="#" title="Find my location" style="width: 30px; height: 30px; line-height: 30px; text-align: center; display: block; background-color: white; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.4);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            </a>
+        `;
+        
+        div.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        currentLocation = { lat, lng };
+                        
+                        // Center the map on the user's location
+                        map.setView([lat, lng], 15);
+                        
+                        // Add a marker for the user's location
+                        L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                className: 'user-location',
+                                html: '<div style="background-color: #4285F4; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #4285F4;"></div>',
+                                iconSize: [16, 16],
+                                iconAnchor: [8, 8]
+                            })
+                        }).addTo(map);
+                        
+                        // Load data for the user's location
+                        loadData(currentLocation);
+                    },
+                    error => {
+                        console.error('Error getting user location:', error);
+                        alert('Unable to find your location. Please try again or search for a location.');
+                    }
+                );
+            } else {
+                alert('Geolocation is not supported by your browser.');
+            }
+        };
+        
+        return div;
+    };
+    locationButton.addTo(map);
     
-    // Add filter button event listeners
-    filterButtons.forEach(button => {
+    // Add attribution control to bottom right, below zoom controls
+    const attributionControl = L.control.attribution({
+        position: 'bottomright',
+        prefix: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    });
+    attributionControl.addTo(map);
+    
+    // Try to get the user's location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            position => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                currentLocation = { lat, lng };
+                
+                // Center the map on the user's location
+                map.setView([lat, lng], 14);
+                
+                // Add a marker for the user's location
+                L.marker([lat, lng], {
+                    icon: L.divIcon({
+                        className: 'user-location',
+                        html: '<div style="background-color: #4285F4; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #4285F4;"></div>',
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
+                    })
+                }).addTo(map);
+                
+                // Load data for the user's location
+                loadData(currentLocation);
+            },
+            error => {
+                console.error('Error getting user location:', error);
+                // Load data for Melbourne as fallback
+                loadData({ lat: -37.8136, lng: 144.9631 });
+            }
+        );
+    } else {
+        console.log('Geolocation is not supported by this browser.');
+        // Load data for Melbourne as fallback
+        loadData({ lat: -37.8136, lng: 144.9631 });
+    }
+    
+    console.log('Map initialization complete');
+}
+
+// Set up event listeners
+function setupEventListeners() {
+    // Location input
+    let searchTimeout;
+    locationInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.trim();
+        console.log('Search term:', searchTerm);
+        
+        // Clear previous timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        // Set new timeout to avoid too many API calls
+        searchTimeout = setTimeout(async () => {
+            if (searchTerm.length >= 2) {
+                try {
+                    console.log('Fetching suggestions for:', searchTerm);
+                    
+                    // Use Nominatim to search for locations
+                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&countrycodes=au&limit=10&addressdetails=1`;
+                    console.log('Fetching from URL:', url);
+                    
+                    const response = await fetch(url);
+                    const suggestions = await response.json();
+                    console.log('Received suggestions:', suggestions);
+                    
+                    // Clear previous suggestions
+                    searchSuggestions.innerHTML = '';
+                    
+                    if (suggestions && suggestions.length > 0) {
+                        suggestions.forEach(suggestion => {
+                            const div = document.createElement('div');
+                            div.className = 'suggestion-item';
+                            
+                            // Format the display name and address
+                            const displayName = formatDisplayName(suggestion);
+                            const address = formatAddress(suggestion.address);
+                            
+                            console.log('Suggestion:', {
+                                displayName,
+                                address,
+                                rawAddress: suggestion.address
+                            });
+                            
+                            // Make sure we have an address to display
+                            const mainText = address || displayName;
+                            const secondaryText = address ? displayName : '';
+                            
+                            div.innerHTML = `
+                                <h4>${mainText}</h4>
+                                ${secondaryText ? `<p>${secondaryText}</p>` : ''}
+                            `;
+                            
+                            div.addEventListener('click', () => {
+                                locationInput.value = mainText;
+                                searchSuggestions.classList.remove('active');
+                                
+                                // Update map view and load data
+                                const coords = {
+                                    lat: parseFloat(suggestion.lat),
+                                    lng: parseFloat(suggestion.lon)
+                                };
+                                
+                                currentLocation = coords;
+                                map.setView([coords.lat, coords.lng], 15);
+                                
+                                // Add a marker for the searched location
+                                addSearchMarker(coords.lat, coords.lng, mainText);
+                                
+                                loadData(coords);
+                            });
+                            
+                            searchSuggestions.appendChild(div);
+                        });
+                        
+                        searchSuggestions.classList.add('active');
+                    } else {
+                        searchSuggestions.classList.remove('active');
+                    }
+                } catch (error) {
+                    console.error('Error fetching location suggestions:', error);
+                    searchSuggestions.classList.remove('active');
+                }
+            } else {
+                searchSuggestions.classList.remove('active');
+            }
+        }, 300); // 300ms delay
+    });
+    
+    // Close suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.location-search')) {
+            searchSuggestions.classList.remove('active');
+        }
+    });
+    
+    // Filter buttons click
+    document.querySelectorAll('.filter-button').forEach(button => {
         button.addEventListener('click', () => {
             // Remove active class from all buttons
-            filterButtons.forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.filter-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
             // Add active class to clicked button
             button.classList.add('active');
-            // Filter the directory
-            filterDirectory(button.dataset.filter);
+            
+            // Get the filter value
+            currentFilter = button.getAttribute('data-filter');
+            
+            // Render the directory with the new filter
+            renderDirectory();
+        });
+    });
+    
+    // Filter checkboxes change
+    [filterFacilitiesCheckbox, filterToiletsCheckbox, filterEventsCheckbox].forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            // Update active filters array
+            updateActiveFilters();
+            renderDirectory();
+        });
+    });
+    
+    // Reset filters link
+    resetFiltersLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        // Reset all checkboxes to checked
+        filterFacilitiesCheckbox.checked = true;
+        filterToiletsCheckbox.checked = true;
+        filterEventsCheckbox.checked = true;
+        
+        // Reset active filters
+        activeFilters = ['facilities', 'toilets', 'events'];
+        
+        // Reset date filter
+        currentFilter = 'all';
+        document.querySelectorAll('.filter-button').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Render the directory with the reset filters
+        renderDirectory();
+    });
+    
+    // Sidebar toggle
+    sidebarToggle.addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.toggle('collapsed');
+    });
+
+    // Tab switching functionality
+    const tabs = document.querySelectorAll('.sidebar-tab');
+    const tabContents = document.querySelectorAll('.sidebar-tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Remove active class from all tabs
+            tabs.forEach(t => t.classList.remove('active'));
+            // Add active class to clicked tab
+            tab.classList.add('active');
+
+            // Hide all tab contents
+            tabContents.forEach(content => content.style.display = 'none');
+            // Show the corresponding tab content
+            const tabId = tab.getAttribute('data-tab');
+            document.getElementById(tabId + '-tab').style.display = 'block';
         });
     });
 
-    // Show initial message
-    directoryContainer.innerHTML = '<div class="loading">Loading nearby places...</div>';
-    
-    console.log('Map initialization complete');
-    
-    // Load data for Melbourne by default
-    loadData(MELBOURNE_COORDS);
+    // Set initial active tab
+    tabs[0].classList.add('active');
+    tabContents[0].style.display = 'block';
 }
 
-// Search for a location based on user input
-function searchLocation() {
-    const query = locationInput.value.trim();
+// Update active filters based on checkbox states
+function updateActiveFilters() {
+    activeFilters = [];
     
-    if (!query) {
-        return;
+    if (filterFacilitiesCheckbox.checked) {
+        activeFilters.push('facilities');
     }
     
-    console.log('Searching for location:', query);
+    if (filterToiletsCheckbox.checked) {
+        activeFilters.push('toilets');
+    }
     
-    // Show loading state
-    directoryContainer.innerHTML = '<div class="loading">Searching for location...</div>';
-    
-    // Use Nominatim API to geocode the location
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Location search results:', data);
-            
-            if (data && data.length > 0) {
-                const lat = parseFloat(data[0].lat);
-                const lng = parseFloat(data[0].lon);
-                currentLocation = { lat, lng };
-                
-                // Update map view
-                map.setView([lat, lng], 14);
-                
-                // Update user marker
-                userMarker.setLatLng([lat, lng]);
-                
-                // Load data for the searched location
-                loadData({ lat, lng });
-            } else {
-                directoryContainer.innerHTML = '<div class="no-results">Location not found. Please try a different search term.</div>';
-            }
-        })
-        .catch(error => {
-            console.error('Error searching location:', error);
-            directoryContainer.innerHTML = '<div class="no-results">Error searching for location. Please try again.</div>';
-        });
+    if (filterEventsCheckbox.checked) {
+        activeFilters.push('events');
+    }
 }
 
 // Load data for a location
@@ -169,110 +412,33 @@ async function loadData(location) {
             
             const marker = L.marker([lat, lng], {
                 icon: L.divIcon({
-                    className: 'place-marker',
-                    html: `<div style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>`,
-                    iconSize: [16, 16],
-                    iconAnchor: [8, 8]
+                    className: 'custom-marker',
+                    html: `<div style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px ${markerColor};"></div>`,
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6]
                 })
             }).addTo(map);
             
-            // Add popup to marker
+            // Add popup with place info
             marker.bindPopup(`
-                <strong>${place.name}</strong><br>
-                ${place.description}
+                <div class="marker-popup">
+                    <h3>${place.name}</h3>
+                    <p>${place.description}</p>
+                    ${place.amenities ? `<p><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
+                    <button onclick="selectPlace('${place.id}')">View Details</button>
+                </div>
             `);
             
-            // Store the place data with the marker for later reference
-            marker.placeData = place;
-            
+            // Store marker reference
             markers.push(marker);
         });
         
         // Render the directory with the current filter
-        const activeFilter = document.querySelector('.filter-button.active').dataset.filter;
-        renderDirectory(activeFilter);
+        renderDirectory();
     } catch (error) {
         console.error('Error loading data:', error);
-        directoryContainer.innerHTML = '<div class="no-results">Error loading nearby places. Please try again.</div>';
+        directoryContainer.innerHTML = '<div class="no-results">Error loading data. Please try again.</div>';
     }
-}
-
-// Get sample facilities data
-function getSampleFacilities(location) {
-    return [
-        {
-            id: 'facility-1',
-            name: 'Shopping Centre Parent Room',
-            type: 'facility',
-            description: 'Spacious parent room with changing tables, feeding area, and comfortable seating.',
-            address: '123 Main St, Melbourne',
-            lat: location.lat + 0.002,
-            lng: location.lng + 0.002,
-            tags: ['Changing Table', 'Feeding Area', 'Wheelchair Accessible']
-        },
-        {
-            id: 'facility-2',
-            name: 'Park Baby Change Facility',
-            type: 'facility',
-            description: 'Clean and well-maintained baby change facility in the park.',
-            address: '456 Park Ave, Melbourne',
-            lat: location.lat - 0.003,
-            lng: location.lng + 0.001,
-            tags: ['Changing Table', 'Outdoor']
-        },
-        {
-            id: 'facility-3',
-            name: 'Library Family Room',
-            type: 'facility',
-            description: 'Quiet space for parents and babies with changing facilities.',
-            address: '789 Library St, Melbourne',
-            lat: location.lat + 0.001,
-            lng: location.lng - 0.002,
-            tags: ['Changing Table', 'Quiet Space', 'Books']
-        }
-    ];
-}
-
-// Get sample events data
-function getSampleEvents(location) {
-    return [
-        {
-            id: 'event-1',
-            name: 'Baby Music Class',
-            type: 'event',
-            description: 'Interactive music class for babies 0-12 months. Songs, rhymes, and gentle movements.',
-            address: '321 Music Hall, Melbourne',
-            lat: location.lat + 0.004,
-            lng: location.lng - 0.001,
-            date: new Date().toISOString().split('T')[0],
-            time: '10:00 AM',
-            tags: ['Music', '0-12 months', 'Today']
-        },
-        {
-            id: 'event-2',
-            name: 'Baby Sensory Play',
-            type: 'event',
-            description: 'Sensory play session for babies to explore textures, sounds, and colors.',
-            address: '654 Play Centre, Melbourne',
-            lat: location.lat - 0.002,
-            lng: location.lng - 0.003,
-            date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-            time: '11:30 AM',
-            tags: ['Sensory', '6-12 months', 'Tomorrow']
-        },
-        {
-            id: 'event-3',
-            name: 'Parent & Baby Yoga',
-            type: 'event',
-            description: 'Gentle yoga session for parents and babies. Bonding through movement.',
-            address: '987 Yoga Studio, Melbourne',
-            lat: location.lat + 0.003,
-            lng: location.lng + 0.003,
-            date: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
-            time: '9:00 AM',
-            tags: ['Yoga', 'All Ages', 'This Weekend']
-        }
-    ];
 }
 
 // Get marker color based on place type
@@ -283,156 +449,401 @@ function getMarkerColor(place) {
         case 'facility':
             return '#2196F3'; // Blue
         case 'event':
-            return '#9C27B0'; // Purple
+            return '#FF9800'; // Orange
         default:
-            return '#757575'; // Grey
+            return '#9E9E9E'; // Gray
     }
 }
 
-// Render the directory with filtered places
-function renderDirectory(filter = 'all') {
-    console.log('Rendering directory with filter:', filter);
+// Render the directory
+function renderDirectory() {
+    if (!directoryContainer) return;
     
-    // Filter places based on type and date
-    const filteredPlaces = places.filter(place => {
-        if (filter === 'all') return true;
-        if (filter === 'toilets') return place.type === 'toilet';
-        if (filter === 'facilities') return place.type === 'facility';
-        if (filter === 'events') return place.type === 'event';
-        
-        // Date-based filters for events
-        if (filter === 'today' && place.type === 'event') {
-            return isToday(place.date);
-        }
-        if (filter === 'tomorrow' && place.type === 'event') {
-            return isTomorrow(place.date);
-        }
-        if (filter === 'weekend' && place.type === 'event') {
-            return isWeekend(place.date);
-        }
-        
-        return false;
-    });
+    // Clear the directory
+    directoryContainer.innerHTML = '';
     
-    // Sort places by distance if we have user location
-    if (currentLocation) {
-        filteredPlaces.sort((a, b) => {
-            const aLat = a.latitude || a.lat;
-            const aLng = a.longitude || a.lng;
-            const bLat = b.latitude || b.lat;
-            const bLng = b.longitude || b.lng;
-            
-            const distA = calculateDistance(
-                currentLocation.lat,
-                currentLocation.lng,
-                aLat,
-                aLng
-            );
-            const distB = calculateDistance(
-                currentLocation.lat,
-                currentLocation.lng,
-                bLat,
-                bLng
-            );
-            return distA - distB;
-        });
-    }
-    
-    // Generate HTML for the directory
-    if (filteredPlaces.length === 0) {
-        directoryContainer.innerHTML = '<div class="no-results">No places found for the selected filter.</div>';
+    // If no places, show loading
+    if (!places || places.length === 0) {
+        directoryContainer.innerHTML = '<div class="loading">Loading...</div>';
         return;
     }
     
-    const html = filteredPlaces.map(place => {
-        const distance = currentLocation ? 
-            calculateDistance(
-                currentLocation.lat,
-                currentLocation.lng,
-                place.latitude || place.lat,
-                place.longitude || place.lng
-            ).toFixed(1) : null;
+    // Filter places based on active filters
+    let filteredPlaces = places.filter(place => {
+        // First check if the place matches the date filter
+        let matchesDateFilter = true;
+        
+        if (currentFilter === 'today') {
+            matchesDateFilter = isToday(place.date);
+        } else if (currentFilter === 'tomorrow') {
+            matchesDateFilter = isTomorrow(place.date);
+        } else if (currentFilter === 'weekend') {
+            matchesDateFilter = isWeekend(place.date);
+        }
+        
+        // Then check if the place type is in the active filters
+        const matchesTypeFilter = activeFilters.includes(place.type);
+        
+        return matchesDateFilter && matchesTypeFilter;
+    });
+    
+    // If no places match the filters, show a message
+    if (filteredPlaces.length === 0) {
+        directoryContainer.innerHTML = '<div class="no-results">No places match your filters</div>';
+        return;
+    }
+    
+    // Sort places by distance if we have a current location
+    if (currentLocation) {
+        filteredPlaces.sort((a, b) => {
+            const distanceA = calculateDistance(
+                currentLocation.lat, 
+                currentLocation.lng, 
+                a.lat, 
+                a.lng
+            );
             
-        return `
-            <div class="directory-item" onclick="selectPlace('${place.id}')">
-                <div class="item-header">
-                    ${place.type === 'toilet' ? '<span class="toilet-icon"></span>' : ''}
-                    <h3>${place.name}</h3>
-                    ${distance ? `<span class="distance">${distance}km</span>` : ''}
-                </div>
-                <p>${place.description}</p>
-                ${place.amenities ? `
-                    <div class="toilet-info">
-                        <strong>Amenities:</strong> ${place.amenities.join(', ')}
-                    </div>
-                ` : ''}
-                <div class="tags">
-                    ${place.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-                </div>
+            const distanceB = calculateDistance(
+                currentLocation.lat, 
+                currentLocation.lng, 
+                b.lat, 
+                b.lng
+            );
+            
+            return distanceA - distanceB;
+        });
+    }
+    
+    // Render each place
+    filteredPlaces.forEach(place => {
+        const placeElement = document.createElement('div');
+        placeElement.className = 'directory-item';
+        placeElement.setAttribute('data-id', place.id);
+        
+        // Calculate distance if we have a current location
+        let distanceText = '';
+        if (currentLocation) {
+            const distance = calculateDistance(
+                currentLocation.lat, 
+                currentLocation.lng, 
+                place.lat, 
+                place.lng
+            );
+            
+            if (distance < 1) {
+                distanceText = `<p>${Math.round(distance * 1000)}m away</p>`;
+            } else {
+                distanceText = `<p>${distance.toFixed(1)}km away</p>`;
+            }
+        }
+        
+        // Create the place HTML
+        placeElement.innerHTML = `
+            <h3>${place.name}</h3>
+            ${distanceText}
+            <p>${place.description || ''}</p>
+            <div class="tags">
+                <span class="tag">${place.type}</span>
+                ${place.date ? `<span class="tag">${formatDate(place.date)}</span>` : ''}
             </div>
         `;
-    }).join('');
-    
-    directoryContainer.innerHTML = html;
+        
+        // Add click event to select the place
+        placeElement.addEventListener('click', () => {
+            selectPlace(place.id);
+        });
+        
+        // Add to directory
+        directoryContainer.appendChild(placeElement);
+    });
+}
+
+// Format date for display
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-AU', { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short' 
+    });
 }
 
 // Calculate distance between two points using the Haversine formula
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
     const a = 
         Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    const d = R * c; // Distance in km
+    return d;
 }
 
-// Filter the directory based on the selected filter
-function filterDirectory(filter) {
-    renderDirectory(filter);
+// Convert degrees to radians
+function deg2rad(deg) {
+    return deg * (Math.PI/180);
 }
 
 // Select a place and show its details
-function selectPlace(placeId) {
-    const place = places.find(p => p.id === placeId);
+function selectPlace(id) {
+    const place = places.find(p => p.id === id);
     if (!place) return;
     
-    // Find the corresponding marker
-    const marker = markers.find(m => m.placeData.id === placeId);
-    if (!marker) return;
+    // Center the map on the place
+    const lat = place.latitude || place.lat;
+    const lng = place.longitude || place.lng;
+    map.setView([lat, lng], 16);
     
-    // Deselect previous marker if any
-    if (selectedMarker) {
-        const prevIcon = selectedMarker.getIcon();
-        prevIcon.options.html = prevIcon.options.html.replace('3px', '2px');
-        selectedMarker.setIcon(prevIcon);
+    // Find the marker for this place
+    const marker = markers.find(m => {
+        const markerLat = m.getLatLng().lat;
+        const markerLng = m.getLatLng().lng;
+        return markerLat === lat && markerLng === lng;
+    });
+    
+    // Open the popup
+    if (marker) {
+        marker.openPopup();
     }
-    
-    // Select new marker
-    const icon = marker.getIcon();
-    icon.options.html = icon.options.html.replace('2px', '3px');
-    marker.setIcon(icon);
-    selectedMarker = marker;
-    
-    // Pan to marker
-    map.panTo(marker.getLatLng());
-    
-    // Open popup
-    marker.openPopup();
 }
 
-// Wait for the ToiletMapAPI to be initialized
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOM loaded, initializing map...');
+// Get sample facilities data
+function getSampleFacilities(location) {
+    // Generate a grid of sample facilities around the location
+    const sampleFacilities = [];
+    const offsets = [-0.01, -0.005, 0.005, 0.01];
     
-    // Wait a moment for the ToiletMapAPI to be initialized
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Create facilities at different offsets
+    for (let i = 0; i < offsets.length; i++) {
+        for (let j = 0; j < offsets.length; j++) {
+            const lat = location.lat + offsets[i];
+            const lng = location.lng + offsets[j];
+            
+            const id = `facility-${i}-${j}`;
+            const distance = calculateDistance(location.lat, location.lng, lat, lng);
+            
+            // Only include facilities within 5km
+            if (distance <= 5) {
+                const facilityTypes = [
+                    'Baby Care Room',
+                    'Parent Room',
+                    'Family Room',
+                    'Nursing Room',
+                    'Changing Station'
+                ];
+                
+                const type = facilityTypes[Math.floor(Math.random() * facilityTypes.length)];
+                const hasNursing = Math.random() > 0.5;
+                const hasMicrowave = Math.random() > 0.7;
+                
+                const amenities = [type];
+                if (hasNursing) amenities.push('Nursing Area');
+                if (hasMicrowave) amenities.push('Microwave');
+                
+                const tags = [...amenities];
+                if (Math.random() > 0.5) tags.push('Wheelchair Accessible');
+                
+                sampleFacilities.push({
+                    id,
+                    name: `${type} ${sampleFacilities.length + 1}`,
+                    type: 'facility',
+                    description: `A ${type.toLowerCase()} for parents with babies and young children${hasNursing ? ' with a private nursing area' : ''}${hasMicrowave ? ' and microwave for warming bottles' : ''}.`,
+                    latitude: lat,
+                    longitude: lng,
+                    amenities,
+                    tags,
+                    rating: (Math.random() * 5).toFixed(1),
+                    reviews: []
+                });
+            }
+        }
+    }
     
-    // Initialize the map
-    initMap();
+    return sampleFacilities;
+}
+
+// Get sample events data
+function getSampleEvents(location) {
+    // Generate sample events around the location
+    const sampleEvents = [];
+    const offsets = [-0.015, -0.01, -0.005, 0.005, 0.01, 0.015];
     
-    // Set up event listeners
-    setupEventListeners();
-}); 
+    // Create events at different offsets
+    for (let i = 0; i < offsets.length; i++) {
+        for (let j = 0; j < offsets.length; j++) {
+            const lat = location.lat + offsets[i];
+            const lng = location.lng + offsets[j];
+            
+            const id = `event-${i}-${j}`;
+            const distance = calculateDistance(location.lat, location.lng, lat, lng);
+            
+            // Only include events within 5km
+            if (distance <= 5) {
+                const eventTypes = [
+                    'Baby Music Class',
+                    'Parent & Baby Yoga',
+                    'Storytime',
+                    'Baby Sensory Play',
+                    'Parent Support Group',
+                    'Baby Massage Workshop'
+                ];
+                
+                const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+                
+                // Generate a random date within the next 7 days
+                const today = new Date();
+                const daysToAdd = Math.floor(Math.random() * 7);
+                const eventDate = new Date(today);
+                eventDate.setDate(today.getDate() + daysToAdd);
+                
+                // Format the date
+                const formattedDate = eventDate.toLocaleDateString('en-AU', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                // Generate a random time
+                const hours = Math.floor(Math.random() * 12) + 9; // Between 9 AM and 8 PM
+                const minutes = Math.random() > 0.5 ? '00' : '30';
+                const time = `${hours}:${minutes} ${hours < 12 ? 'AM' : 'PM'}`;
+                
+                const hasBooking = Math.random() > 0.3;
+                const isFree = Math.random() > 0.4;
+                
+                const tags = [type];
+                if (hasBooking) tags.push('Booking Required');
+                if (isFree) tags.push('Free');
+                
+                sampleEvents.push({
+                    id,
+                    name: `${type} ${sampleEvents.length + 1}`,
+                    type: 'event',
+                    description: `Join us for a ${type.toLowerCase()} session. ${hasBooking ? 'Booking is required in advance.' : 'No booking required, just turn up!'} ${isFree ? 'This event is free.' : 'Small fee applies.'}`,
+                    latitude: lat,
+                    longitude: lng,
+                    date: eventDate.toISOString(),
+                    formattedDate,
+                    time,
+                    tags,
+                    bookingRequired: hasBooking,
+                    isFree
+                });
+            }
+        }
+    }
+    
+    return sampleEvents;
+}
+
+// Helper function to check if a location is in Victoria
+function isLocationInVictoria(latlng) {
+    // Victoria's approximate bounding box
+    const victoriaBounds = {
+        north: -34.0,
+        south: -39.0,
+        east: 150.0,
+        west: 141.0
+    };
+    
+    return (
+        latlng.lat >= victoriaBounds.south &&
+        latlng.lat <= victoriaBounds.north &&
+        latlng.lng >= victoriaBounds.west &&
+        latlng.lng <= victoriaBounds.east
+    );
+}
+
+// Helper function to format the display name
+function formatDisplayName(suggestion) {
+    if (suggestion.type === 'poi') {
+        return suggestion.name || suggestion.display_name.split(',')[0];
+    }
+    
+    const parts = suggestion.display_name.split(',');
+    return parts[0];
+}
+
+// Helper function to format the address
+function formatAddress(address) {
+    if (!address) return '';
+    
+    const parts = [];
+    
+    // Add street if available
+    if (address.road) {
+        parts.push(address.road);
+    }
+    
+    // Add suburb if available
+    if (address.suburb) {
+        parts.push(address.suburb);
+    }
+    
+    // Add city/town if available
+    if (address.city || address.town) {
+        parts.push(address.city || address.town);
+    }
+    
+    // Add state if available
+    if (address.state) {
+        parts.push(address.state);
+    }
+    
+    // If we don't have any parts, try to use the display_name
+    if (parts.length === 0 && address.display_name) {
+        return address.display_name;
+    }
+    
+    return parts.join(', ');
+}
+
+// Add a marker for the searched location
+function addSearchMarker(lat, lng, title) {
+    console.log('Adding search marker:', { lat, lng, title });
+    
+    // Remove any existing search marker
+    if (searchMarker) {
+        map.removeLayer(searchMarker);
+        searchMarker = null;
+    }
+    
+    // Create a custom icon for the search marker
+    const searchIcon = L.divIcon({
+        className: 'search-marker',
+        html: `
+            <div class="search-marker-pin">
+                <div class="search-marker-dot"></div>
+            </div>
+        `,
+        iconSize: [30, 42],
+        iconAnchor: [15, 42],
+        popupAnchor: [0, -42]
+    });
+    
+    // Add the marker to the map
+    searchMarker = L.marker([lat, lng], { icon: searchIcon }).addTo(map);
+    
+    // Add a popup with the location name
+    searchMarker.bindPopup(title).openPopup();
+    
+    // Add pulse animation to the marker
+    const markerElement = searchMarker.getElement();
+    if (markerElement) {
+        const dotElement = markerElement.querySelector('.search-marker-dot');
+        if (dotElement) {
+            dotElement.classList.add('pulse');
+            console.log('Added pulse animation to search marker');
+        } else {
+            console.error('Could not find dot element in search marker');
+        }
+    } else {
+        console.error('Could not get marker element');
+    }
+    
+    console.log('Search marker added successfully');
+} 
