@@ -401,8 +401,11 @@ async function loadData(location) {
         const facilities = getSampleFacilities(location);
         const events = getSampleEvents(location);
         
+        // Get additional dummy data
+        const additionalData = getAdditionalDummyData(location);
+        
         // Combine all places
-        places = [...toiletData, ...facilities, ...events];
+        places = [...toiletData, ...facilities, ...events, ...additionalData];
         
         // Add markers to the map
         places.forEach(place => {
@@ -846,4 +849,116 @@ function addSearchMarker(lat, lng, title) {
     }
     
     console.log('Search marker added successfully');
+}
+
+// Get additional dummy data for the map
+function getAdditionalDummyData(location) {
+    const additionalData = [];
+    
+    // Add some popular baby-friendly locations
+    const popularLocations = [
+        {
+            name: "Melbourne Zoo",
+            description: "Family-friendly zoo with baby change facilities and stroller rentals.",
+            type: "facility",
+            amenities: ["Baby Change", "Stroller Rental", "Cafe", "Playground"],
+            tags: ["Family Friendly", "Educational", "Outdoor"],
+            rating: "4.8"
+        },
+        {
+            name: "Scienceworks",
+            description: "Interactive science museum with dedicated baby area and nursing rooms.",
+            type: "facility",
+            amenities: ["Nursing Room", "Baby Area", "Cafe", "Wheelchair Accessible"],
+            tags: ["Educational", "Indoor", "Family Friendly"],
+            rating: "4.6"
+        },
+        {
+            name: "Royal Botanic Gardens",
+            description: "Beautiful gardens with baby change facilities and picnic areas.",
+            type: "facility",
+            amenities: ["Baby Change", "Picnic Area", "Cafe", "Wheelchair Accessible"],
+            tags: ["Outdoor", "Nature", "Family Friendly"],
+            rating: "4.7"
+        },
+        {
+            name: "Baby Sensory Playgroup",
+            description: "Weekly sensory play sessions for babies 0-12 months.",
+            type: "event",
+            date: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString(),
+            formattedDate: new Date(new Date().setDate(new Date().getDate() + 2)).toLocaleDateString('en-AU', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }),
+            time: "10:00 AM",
+            tags: ["Sensory Play", "Baby Friendly", "Weekly"],
+            bookingRequired: true,
+            isFree: false
+        },
+        {
+            name: "Parent & Baby Yoga",
+            description: "Gentle yoga classes designed for parents and babies to enjoy together.",
+            type: "event",
+            date: new Date(new Date().setDate(new Date().getDate() + 3)).toISOString(),
+            formattedDate: new Date(new Date().setDate(new Date().getDate() + 3)).toLocaleDateString('en-AU', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }),
+            time: "11:30 AM",
+            tags: ["Yoga", "Baby Friendly", "Weekly"],
+            bookingRequired: true,
+            isFree: false
+        },
+        {
+            name: "Baby Music Class",
+            description: "Interactive music sessions for babies 0-18 months with singing and instruments.",
+            type: "event",
+            date: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString(),
+            formattedDate: new Date(new Date().setDate(new Date().getDate() + 1)).toLocaleDateString('en-AU', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }),
+            time: "9:30 AM",
+            tags: ["Music", "Baby Friendly", "Weekly"],
+            bookingRequired: false,
+            isFree: false
+        }
+    ];
+    
+    // Add these locations with slight offsets from the center
+    popularLocations.forEach((place, index) => {
+        // Create a circular pattern around the center point
+        const angle = (index / popularLocations.length) * 2 * Math.PI;
+        const radius = 0.01; // About 1km from center
+        const lat = location.lat + radius * Math.cos(angle);
+        const lng = location.lng + radius * Math.sin(angle);
+        
+        const id = `popular-${index}`;
+        
+        additionalData.push({
+            id,
+            name: place.name,
+            type: place.type,
+            description: place.description,
+            latitude: lat,
+            longitude: lng,
+            amenities: place.amenities || [],
+            tags: place.tags || [],
+            rating: place.rating,
+            date: place.date,
+            formattedDate: place.formattedDate,
+            time: place.time,
+            bookingRequired: place.bookingRequired,
+            isFree: place.isFree,
+            reviews: []
+        });
+    });
+    
+    return additionalData;
 } 
