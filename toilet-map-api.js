@@ -30,6 +30,14 @@ class ToiletMapAPI {
     async loadToiletData() {
         console.log('Loading toilet data...');
         try {
+            // For local development, always use sample data
+            console.log('Using sample data for local development');
+            this.toiletData = this.getSampleToiletData({ lat: -37.8136, lng: 144.9631 });
+            console.log(`Using ${this.toiletData.length} sample toilet records for development`);
+            return this.toiletData;
+            
+            // The following code is commented out for local development
+            /*
             // First check if we already loaded the data as a module
             if (toiletDataModule && toiletDataModule.default) {
                 console.log('Using toilet data loaded as module');
@@ -50,6 +58,7 @@ class ToiletMapAPI {
             console.log('Toilet data loaded successfully');
             this.processToiletData(data);
             return this.toiletData;
+            */
         } catch (error) {
             console.error('Error loading toilet data:', error);
             console.log('Falling back to sample data for development');
@@ -223,8 +232,7 @@ class ToiletMapAPI {
                         name: `Public Toilet ${sampleToilets.length + 1}`,
                         type: 'toilet',
                         description: `Public toilet facility${hasBabyChange ? ' with baby change facilities' : ''}${isWheelchairAccessible ? ' and wheelchair access' : ''}.`,
-                        latitude: lat,
-                        longitude: lng,
+                        location: { lat, lng },
                         amenities,
                         tags,
                         rating: (Math.random() * 5).toFixed(1),

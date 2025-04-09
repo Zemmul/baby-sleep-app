@@ -72,12 +72,13 @@ function initMap() {
     
     // Get the directory container
     directoryContainer = document.getElementById('directory');
+    console.log('Directory container:', directoryContainer);
     
     // Initialize the map centered on Melbourne
     map = L.map('map', {
         zoomControl: false, // We'll add custom zoom control
         attributionControl: false // We'll add custom attribution
-    }).setView([-37.8136, 144.9631], 13);
+    }).setView([MELBOURNE_COORDS.lat, MELBOURNE_COORDS.lng], 13);
     
     // Add Google Maps-like tiles
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -132,11 +133,14 @@ function initMap() {
                     },
                     error => {
                         console.error('Error getting user location:', error);
-                        alert('Unable to find your location. Please try again or search for a location.');
+                        // Load data for Melbourne as fallback
+                        loadData(MELBOURNE_COORDS);
                     }
                 );
             } else {
                 alert('Geolocation is not supported by your browser.');
+                // Load data for Melbourne as fallback
+                loadData(MELBOURNE_COORDS);
             }
         };
         
@@ -178,13 +182,13 @@ function initMap() {
             error => {
                 console.error('Error getting user location:', error);
                 // Load data for Melbourne as fallback
-                loadData({ lat: -37.8136, lng: 144.9631 });
+                loadData(MELBOURNE_COORDS);
             }
         );
     } else {
         console.log('Geolocation is not supported by this browser.');
         // Load data for Melbourne as fallback
-        loadData({ lat: -37.8136, lng: 144.9631 });
+        loadData(MELBOURNE_COORDS);
     }
     
     console.log('Map initialization complete');
@@ -209,6 +213,62 @@ function setupEventListeners() {
                 try {
                     console.log('Fetching suggestions for:', searchTerm);
                     
+                    // For local development, use sample suggestions
+                    console.log('Using sample suggestions for local development');
+                    const sampleSuggestions = getSampleSuggestions(searchTerm);
+                    console.log('Sample suggestions:', sampleSuggestions);
+                    
+                    // Clear previous suggestions
+                    searchSuggestions.innerHTML = '';
+                    
+                    if (sampleSuggestions && sampleSuggestions.length > 0) {
+                        sampleSuggestions.forEach(suggestion => {
+                            const div = document.createElement('div');
+                            div.className = 'suggestion-item';
+                            
+                            // Format the display name and address
+                            const displayName = suggestion.displayName;
+                            const address = suggestion.address;
+                            
+                            console.log('Suggestion:', {
+                                displayName,
+                                address
+                            });
+                            
+                            // Make sure we have an address to display
+                            const mainText = address || displayName;
+                            const secondaryText = address ? displayName : '';
+                            
+                            div.innerHTML = `
+                                <h4>${mainText}</h4>
+                                ${secondaryText ? `<p>${secondaryText}</p>` : ''}
+                            `;
+                            
+                            div.addEventListener('click', () => {
+                                locationInput.value = mainText;
+                                searchSuggestions.classList.remove('active');
+                                
+                                // Update map view and load data
+                                const coords = suggestion.coords;
+                                
+                                currentLocation = coords;
+                                map.setView([coords.lat, coords.lng], 15);
+                                
+                                // Add a marker for the searched location
+                                addSearchMarker(coords.lat, coords.lng, mainText);
+                                
+                                loadData(coords);
+                            });
+                            
+                            searchSuggestions.appendChild(div);
+                        });
+                        
+                        searchSuggestions.classList.add('active');
+                    } else {
+                        searchSuggestions.classList.remove('active');
+                    }
+                    
+                    /* Commented out for local development
                     // Use Nominatim to search for locations
                     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&countrycodes=au&limit=10&addressdetails=1`;
                     console.log('Fetching from URL:', url);
@@ -270,6 +330,7 @@ function setupEventListeners() {
                     } else {
                         searchSuggestions.classList.remove('active');
                     }
+                    */
                 } catch (error) {
                     console.error('Error fetching location suggestions:', error);
                     searchSuggestions.classList.remove('active');
@@ -301,8 +362,13 @@ function setupEventListeners() {
             // Get the filter value
             currentFilter = button.getAttribute('data-filter');
             
+            // Update map markers based on current filter
+            updateMapMarkers();
+            
             // Render the directory with the new filter
             renderDirectory();
+            
+            console.log('Filter button clicked. Current filter:', currentFilter);
         });
     });
     
@@ -311,7 +377,12 @@ function setupEventListeners() {
         checkbox.addEventListener('change', () => {
             // Update active filters array
             updateActiveFilters();
+            
+            // Update the directory view
             renderDirectory();
+            
+            // Log the current state of filters
+            console.log('Filter checkboxes changed. Active filters:', activeFilters);
         });
     });
     
@@ -333,8 +404,13 @@ function setupEventListeners() {
             btn.classList.remove('active');
         });
         
+        // Update map markers with reset filters
+        updateMapMarkers();
+        
         // Render the directory with the reset filters
         renderDirectory();
+        
+        console.log('Filters reset. Active filters:', activeFilters);
     });
     
     // Sidebar toggle
@@ -381,37 +457,114 @@ function updateActiveFilters() {
     if (filterEventsCheckbox.checked) {
         activeFilters.push('events');
     }
+    
+    // Update map markers based on active filters
+    updateMapMarkers();
+}
+
+// Update map markers based on active filters
+function updateMapMarkers() {
+    console.log('Updating map markers with active filters:', activeFilters);
+    
+    // Clear all existing markers
+    markers.forEach(marker => marker.remove());
+    markers = [];
+    
+    // If no places, return
+    if (!places || places.length === 0) {
+        return;
+    }
+    
+    // Filter places based on active filters
+    let filteredPlaces = places;
+    
+    // If there are active filters, apply them
+    if (activeFilters.length > 0) {
+        filteredPlaces = places.filter(place => {
+            return activeFilters.includes(place.type);
+        });
+    }
+    
+    console.log(`Showing ${filteredPlaces.length} places on map`);
+    
+    // Add markers for filtered places
+    filteredPlaces.forEach(place => {
+        const markerColor = getMarkerColor(place);
+        const lat = place.latitude || place.lat; // Support both formats
+        const lng = place.longitude || place.lng; // Support both formats
+        
+        const marker = L.marker([lat, lng], {
+            icon: L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px ${markerColor};"></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            })
+        }).addTo(map);
+        
+        // Add popup with place info
+        marker.bindPopup(`
+            <div class="marker-popup">
+                <h3>${place.name}</h3>
+                <p>${place.description}</p>
+                ${place.amenities ? `<p><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
+                <button onclick="selectPlace('${place.id}')">View Details</button>
+            </div>
+        `);
+        
+        // Store marker reference
+        markers.push(marker);
+    });
 }
 
 // Load data for a location
 async function loadData(location) {
+    console.log('Loading data for location:', location);
+    
     // Show loading state
-    directoryContainer.innerHTML = '<div class="loading">Finding nearby places...</div>';
+    if (directoryContainer) {
+        directoryContainer.innerHTML = '<div class="loading">Finding nearby places...</div>';
+    } else {
+        console.error('Directory container not found in loadData!');
+        return;
+    }
     
     // Clear existing markers
     markers.forEach(marker => marker.remove());
     markers = [];
     
     try {
-        // Fetch toilet data from the National Public Toilet Map API
-        const toiletData = await window.ToiletMapAPI.searchToilets(location);
-        console.log('Toilet data:', toiletData);
+        // Get sample data
+        console.log('Getting sample data...');
+        const sampleData = getSampleData(location);
+        console.log('Sample data retrieved:', sampleData);
         
-        // Get sample data for facilities and events
-        const facilities = getSampleFacilities(location);
-        const events = getSampleEvents(location);
-        
-        // Get additional dummy data
+        console.log('Getting additional dummy data...');
         const additionalData = getAdditionalDummyData(location);
+        console.log('Additional dummy data retrieved:', additionalData);
         
-        // Combine all places
-        places = [...toiletData, ...facilities, ...events, ...additionalData];
+        // Combine all data
+        places = [...sampleData, ...additionalData];
         
-        // Add markers to the map
-        places.forEach(place => {
+        console.log(`Total places: ${places.length}`);
+        
+        // Filter places based on active filters
+        let filteredPlaces = places;
+        
+        // If there are active filters, apply them
+        if (activeFilters.length > 0) {
+            filteredPlaces = places.filter(place => {
+                return activeFilters.includes(place.type);
+            });
+        }
+        
+        console.log(`Filtered places: ${filteredPlaces.length}`);
+        
+        // Add markers to the map for filtered places
+        filteredPlaces.forEach(place => {
             const markerColor = getMarkerColor(place);
-            const lat = place.latitude || place.lat; // Support both formats
-            const lng = place.longitude || place.lng; // Support both formats
+            const lat = place.location.lat;
+            const lng = place.location.lng;
             
             const marker = L.marker([lat, lng], {
                 icon: L.divIcon({
@@ -436,11 +589,16 @@ async function loadData(location) {
             markers.push(marker);
         });
         
-        // Render the directory with the current filter
-        renderDirectory();
+        // Render the directory with filtered places
+        renderDirectory(filteredPlaces);
+        
+        // Update the results count
+        updateResultsCount(filteredPlaces.length);
     } catch (error) {
         console.error('Error loading data:', error);
-        directoryContainer.innerHTML = '<div class="no-results">Error loading data. Please try again.</div>';
+        if (directoryContainer) {
+            directoryContainer.innerHTML = '<div class="no-results">Error loading data. Please try again.</div>';
+        }
     }
 }
 
@@ -458,107 +616,75 @@ function getMarkerColor(place) {
     }
 }
 
-// Render the directory
-function renderDirectory() {
-    if (!directoryContainer) return;
+// Function to render the directory
+function renderDirectory(places) {
+    console.log('Rendering directory with places:', places);
     
-    // Clear the directory
+    if (!directoryContainer) {
+        console.error('Directory container not found!');
+        return;
+    }
+    
+    // Clear existing content
     directoryContainer.innerHTML = '';
     
-    // If no places, show loading
-    if (!places || places.length === 0) {
-        directoryContainer.innerHTML = '<div class="loading">Loading...</div>';
+    if (places.length === 0) {
+        console.log('No places to display');
+        directoryContainer.innerHTML = '<p class="no-results">No places found matching your criteria.</p>';
         return;
     }
     
-    // Filter places based on active filters
-    let filteredPlaces = places.filter(place => {
-        // First check if the place matches the date filter
-        let matchesDateFilter = true;
-        
-        if (currentFilter === 'today') {
-            matchesDateFilter = isToday(place.date);
-        } else if (currentFilter === 'tomorrow') {
-            matchesDateFilter = isTomorrow(place.date);
-        } else if (currentFilter === 'weekend') {
-            matchesDateFilter = isWeekend(place.date);
-        }
-        
-        // Then check if the place type is in the active filters
-        const matchesTypeFilter = activeFilters.includes(place.type);
-        
-        return matchesDateFilter && matchesTypeFilter;
-    });
+    // Create a document fragment for better performance
+    const fragment = document.createDocumentFragment();
     
-    // If no places match the filters, show a message
-    if (filteredPlaces.length === 0) {
-        directoryContainer.innerHTML = '<div class="no-results">No places match your filters</div>';
-        return;
-    }
-    
-    // Sort places by distance if we have a current location
-    if (currentLocation) {
-        filteredPlaces.sort((a, b) => {
-            const distanceA = calculateDistance(
-                currentLocation.lat, 
-                currentLocation.lng, 
-                a.lat, 
-                a.lng
-            );
-            
-            const distanceB = calculateDistance(
-                currentLocation.lat, 
-                currentLocation.lng, 
-                b.lat, 
-                b.lng
-            );
-            
-            return distanceA - distanceB;
-        });
-    }
-    
-    // Render each place
-    filteredPlaces.forEach(place => {
+    // Add each place to the directory
+    places.forEach(place => {
+        console.log('Creating element for place:', place.name);
+        
         const placeElement = document.createElement('div');
-        placeElement.className = 'directory-item';
-        placeElement.setAttribute('data-id', place.id);
+        placeElement.className = 'place-card';
+        placeElement.dataset.id = place.id;
         
-        // Calculate distance if we have a current location
+        // Calculate distance if we have current location
         let distanceText = '';
         if (currentLocation) {
             const distance = calculateDistance(
-                currentLocation.lat, 
-                currentLocation.lng, 
-                place.lat, 
-                place.lng
+                currentLocation.lat,
+                currentLocation.lng,
+                place.location.lat,
+                place.location.lng
             );
-            
-            if (distance < 1) {
-                distanceText = `<p>${Math.round(distance * 1000)}m away</p>`;
-            } else {
-                distanceText = `<p>${distance.toFixed(1)}km away</p>`;
-            }
+            distanceText = `<span class="distance">${distance.toFixed(1)} km away</span>`;
         }
         
-        // Create the place HTML
+        // Create the place card HTML
         placeElement.innerHTML = `
-            <h3>${place.name}</h3>
-            ${distanceText}
-            <p>${place.description || ''}</p>
-            <div class="tags">
-                <span class="tag">${place.type}</span>
-                ${place.date ? `<span class="tag">${formatDate(place.date)}</span>` : ''}
+            <div class="place-header">
+                <h3>${place.name}</h3>
+                ${distanceText}
+            </div>
+            <p class="description">${place.description}</p>
+            <div class="place-details">
+                <div class="amenities">
+                    ${place.amenities.map(amenity => `<span class="amenity">${amenity}</span>`).join('')}
+                </div>
+                <div class="tags">
+                    ${place.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                </div>
             </div>
         `;
         
-        // Add click event to select the place
+        // Add click event to show place details
         placeElement.addEventListener('click', () => {
-            selectPlace(place.id);
+            showPlaceDetails(place);
         });
         
-        // Add to directory
-        directoryContainer.appendChild(placeElement);
+        fragment.appendChild(placeElement);
     });
+    
+    // Append all place elements at once
+    directoryContainer.appendChild(fragment);
+    console.log('Directory rendering complete');
 }
 
 // Format date for display
@@ -654,8 +780,7 @@ function getSampleFacilities(location) {
                     name: `${type} ${sampleFacilities.length + 1}`,
                     type: 'facility',
                     description: `A ${type.toLowerCase()} for parents with babies and young children${hasNursing ? ' with a private nursing area' : ''}${hasMicrowave ? ' and microwave for warming bottles' : ''}.`,
-                    latitude: lat,
-                    longitude: lng,
+                    location: { lat, lng },
                     amenities,
                     tags,
                     rating: (Math.random() * 5).toFixed(1),
@@ -670,9 +795,9 @@ function getSampleFacilities(location) {
 
 // Get sample events data
 function getSampleEvents(location) {
-    // Generate sample events around the location
+    // Generate a grid of sample events around the location
     const sampleEvents = [];
-    const offsets = [-0.015, -0.01, -0.005, 0.005, 0.01, 0.015];
+    const offsets = [-0.01, -0.005, 0.005, 0.01];
     
     // Create events at different offsets
     for (let i = 0; i < offsets.length; i++) {
@@ -688,53 +813,33 @@ function getSampleEvents(location) {
                 const eventTypes = [
                     'Baby Music Class',
                     'Parent & Baby Yoga',
-                    'Storytime',
+                    'Story Time',
                     'Baby Sensory Play',
-                    'Parent Support Group',
-                    'Baby Massage Workshop'
+                    'Parent Support Group'
                 ];
                 
                 const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+                const isRecurring = Math.random() > 0.5;
+                const hasBooking = Math.random() > 0.7;
                 
-                // Generate a random date within the next 7 days
-                const today = new Date();
-                const daysToAdd = Math.floor(Math.random() * 7);
-                const eventDate = new Date(today);
-                eventDate.setDate(today.getDate() + daysToAdd);
+                const amenities = ['Baby Change Facilities'];
+                if (hasBooking) amenities.push('Online Booking');
                 
-                // Format the date
-                const formattedDate = eventDate.toLocaleDateString('en-AU', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-                
-                // Generate a random time
-                const hours = Math.floor(Math.random() * 12) + 9; // Between 9 AM and 8 PM
-                const minutes = Math.random() > 0.5 ? '00' : '30';
-                const time = `${hours}:${minutes} ${hours < 12 ? 'AM' : 'PM'}`;
-                
-                const hasBooking = Math.random() > 0.3;
-                const isFree = Math.random() > 0.4;
-                
-                const tags = [type];
-                if (hasBooking) tags.push('Booking Required');
-                if (isFree) tags.push('Free');
+                const tags = [...amenities];
+                if (Math.random() > 0.5) tags.push('Wheelchair Accessible');
                 
                 sampleEvents.push({
                     id,
                     name: `${type} ${sampleEvents.length + 1}`,
                     type: 'event',
-                    description: `Join us for a ${type.toLowerCase()} session. ${hasBooking ? 'Booking is required in advance.' : 'No booking required, just turn up!'} ${isFree ? 'This event is free.' : 'Small fee applies.'}`,
-                    latitude: lat,
-                    longitude: lng,
-                    date: eventDate.toISOString(),
-                    formattedDate,
-                    time,
+                    description: `A ${type.toLowerCase()} for parents and babies${isRecurring ? ' (recurring weekly)' : ''}${hasBooking ? ' with online booking available' : ''}.`,
+                    location: { lat, lng },
+                    amenities,
                     tags,
-                    bookingRequired: hasBooking,
-                    isFree
+                    rating: (Math.random() * 5).toFixed(1),
+                    reviews: [],
+                    schedule: isRecurring ? 'Weekly' : 'One-time',
+                    bookingRequired: hasBooking
                 });
             }
         }
@@ -931,7 +1036,7 @@ function getAdditionalDummyData(location) {
         }
     ];
     
-    // Add these locations with slight offsets from the center
+    // Add these locations with slight offsets from the center point
     popularLocations.forEach((place, index) => {
         // Create a circular pattern around the center point
         const angle = (index / popularLocations.length) * 2 * Math.PI;
@@ -946,8 +1051,7 @@ function getAdditionalDummyData(location) {
             name: place.name,
             type: place.type,
             description: place.description,
-            latitude: lat,
-            longitude: lng,
+            location: { lat, lng },
             amenities: place.amenities || [],
             tags: place.tags || [],
             rating: place.rating,
@@ -961,4 +1065,160 @@ function getAdditionalDummyData(location) {
     });
     
     return additionalData;
+}
+
+// Get sample suggestions for local development
+function getSampleSuggestions(searchTerm) {
+    // Sample suggestions based on the search term
+    const sampleSuggestions = [
+        {
+            displayName: `${searchTerm} Shopping Centre`,
+            address: `123 ${searchTerm} Road, ${searchTerm}, VIC 3000`,
+            coords: {
+                lat: -37.8136 + (Math.random() * 0.01 - 0.005),
+                lng: 144.9631 + (Math.random() * 0.01 - 0.005)
+            }
+        },
+        {
+            displayName: `${searchTerm} Park`,
+            address: `${searchTerm} Park, ${searchTerm}, VIC 3000`,
+            coords: {
+                lat: -37.8136 + (Math.random() * 0.01 - 0.005),
+                lng: 144.9631 + (Math.random() * 0.01 - 0.005)
+            }
+        },
+        {
+            displayName: `${searchTerm} Station`,
+            address: `${searchTerm} Railway Station, ${searchTerm}, VIC 3000`,
+            coords: {
+                lat: -37.8136 + (Math.random() * 0.01 - 0.005),
+                lng: 144.9631 + (Math.random() * 0.01 - 0.005)
+            }
+        }
+    ];
+    
+    return sampleSuggestions;
+}
+
+// Function to get sample data
+function getSampleData(location = { lat: -37.8136, lng: 144.9631 }) { // Default to Melbourne coordinates
+    console.log('Getting sample data for location:', location);
+    
+    // Get sample facilities and events
+    const sampleFacilities = getSampleFacilities(location);
+    const sampleEvents = getSampleEvents(location);
+    console.log('Sample facilities:', sampleFacilities);
+    console.log('Sample events:', sampleEvents);
+    
+    // Get sample toilets
+    let sampleToilets = [];
+    if (window.ToiletMapAPI && typeof window.ToiletMapAPI.getSampleToiletData === 'function') {
+        console.log('ToiletMapAPI is available, getting sample toilet data...');
+        sampleToilets = window.ToiletMapAPI.getSampleToiletData(location);
+        console.log('Sample toilets from API:', sampleToilets);
+    } else {
+        console.log('ToiletMapAPI not available, creating fallback sample toilets...');
+        sampleToilets = createSampleToilets(location);
+        console.log('Fallback sample toilets:', sampleToilets);
+    }
+    
+    // Combine all sample data
+    const allSampleData = [...sampleFacilities, ...sampleEvents, ...sampleToilets];
+    console.log('Total sample data generated:', allSampleData.length);
+    
+    return allSampleData;
+}
+
+// Create sample toilets as fallback
+function createSampleToilets(location) {
+    console.log('Creating fallback sample toilets for location:', location);
+    
+    // Generate a grid of sample toilets around the location
+    const sampleToilets = [];
+    const offsets = [-0.005, -0.0025, 0, 0.0025, 0.005];
+    
+    // Create a 5x5 grid of toilets
+    for (let i = 0; i < offsets.length; i++) {
+        for (let j = 0; j < offsets.length; j++) {
+            const lat = location.lat + offsets[i];
+            const lng = location.lng + offsets[j];
+            
+            // Skip the center point (user location)
+            if (i === 2 && j === 2) continue;
+            
+            const id = `toilet-${i}-${j}`;
+            const distance = calculateDistance(location.lat, location.lng, lat, lng);
+            
+            // Only include toilets within 5km
+            if (distance <= 5) {
+                const hasBabyChange = Math.random() > 0.3; // 70% chance of having baby change
+                const isWheelchairAccessible = Math.random() > 0.2; // 80% chance of being wheelchair accessible
+                
+                const amenities = [];
+                if (hasBabyChange) amenities.push('Baby Change');
+                if (isWheelchairAccessible) amenities.push('Wheelchair Accessible');
+                
+                const tags = [...amenities];
+                if (Math.random() > 0.5) tags.push('Unisex');
+                
+                sampleToilets.push({
+                    id,
+                    name: `Public Toilet ${sampleToilets.length + 1}`,
+                    type: 'toilet',
+                    description: `Public toilet facility${hasBabyChange ? ' with baby change facilities' : ''}${isWheelchairAccessible ? ' and wheelchair access' : ''}.`,
+                    location: { lat, lng },
+                    amenities,
+                    tags,
+                    rating: (Math.random() * 5).toFixed(1),
+                    reviews: []
+                });
+            }
+        }
+    }
+    
+    console.log(`Generated ${sampleToilets.length} fallback sample toilets around [${location.lat}, ${location.lng}]`);
+    return sampleToilets;
+}
+
+// Update the results count
+function updateResultsCount(count) {
+    const resultsCount = document.getElementById('results-count');
+    if (resultsCount) {
+        resultsCount.textContent = `${count} places found`;
+    }
+}
+
+// Function to filter places based on active filters
+function filterPlaces(places) {
+    console.log('Filtering places:', places);
+    console.log('Active filters:', activeFilters);
+    
+    if (!places || places.length === 0) {
+        console.log('No places to filter');
+        return [];
+    }
+    
+    // If no filters are active, return all places
+    if (Object.values(activeFilters).every(filter => !filter)) {
+        console.log('No active filters, returning all places');
+        return places;
+    }
+    
+    // Filter places based on active filters
+    const filteredPlaces = places.filter(place => {
+        // Check if the place matches any active filter
+        const matchesFilter = Object.entries(activeFilters).some(([filter, isActive]) => {
+            if (!isActive) return false;
+            
+            // Check if the place has the filter as a tag or amenity
+            const matches = place.tags.includes(filter) || place.amenities.includes(filter);
+            console.log(`Place ${place.name} matches filter ${filter}: ${matches}`);
+            return matches;
+        });
+        
+        return matchesFilter;
+    });
+    
+    console.log('Filtered places:', filteredPlaces);
+    return filteredPlaces;
 } 
