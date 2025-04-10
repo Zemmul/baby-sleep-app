@@ -23,16 +23,50 @@
     margin-bottom: 0;
 }
 
+.form-divider {
+    border: none;
+    height: 1px;
+    background-color: #ddd;
+    margin: 30px 0;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.checkbox-item input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.checkbox-item label {
+    margin: 0;
+    cursor: pointer;
+}
+
 label {
     display: block;
     margin-bottom: 8px;
-    font-weight: 500;
-    color: var(--heading-color);
+    font-weight: 300;
+    color: var(--text-color);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
 }
 
 input[type="text"],
 input[type="number"],
 input[type="url"],
+input[type="email"],
 input[type="datetime-local"],
 select,
 textarea {
@@ -40,17 +74,22 @@ textarea {
     padding: 12px;
     border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 16px;
+    font-size: 1rem;
+    font-weight: 300;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
     transition: border-color 0.3s;
 }
 
 input[type="text"]:focus,
 input[type="number"]:focus,
 input[type="url"]:focus,
+input[type="email"]:focus,
 input[type="datetime-local"]:focus,
 select:focus,
 textarea:focus {
-    border-color: var(--primary-color);
+    border-color: var(--accent-color);
     outline: none;
 }
 
@@ -80,12 +119,12 @@ textarea {
 }
 
 .button.primary {
-    background-color: var(--primary-color);
+    background-color: var(--accent-color);
     color: white;
 }
 
 .button.primary:hover {
-    background-color: var(--primary-dark);
+    background-color: #e6954a;
 }
 
 .button.secondary {
@@ -123,6 +162,46 @@ textarea {
     border-left: 4px solid #f44336;
 }
 
+/* File upload styles */
+.file-upload-container {
+    margin-bottom: 10px;
+}
+
+.file-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px dashed #ddd;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    cursor: pointer;
+}
+
+.file-input:hover {
+    border-color: var(--accent-color);
+    background-color: #f5f5f5;
+}
+
+.file-upload-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.file-upload-preview img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.file-upload-help {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 5px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .form-row {
@@ -137,4 +216,117 @@ textarea {
     .button {
         width: 100%;
     }
+}
+
+/* Image Preview Styles */
+.image-preview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.preview-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: var(--color-background-alt);
+}
+
+.preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.remove-image {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: background-color 0.2s;
+}
+
+.remove-image:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* Message Styles */
+.message-container {
+    margin: 1.5rem 0;
+}
+
+.message {
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.message.loading {
+    background-color: var(--color-background-alt);
+    color: var(--color-text);
+}
+
+.message.success {
+    background-color: var(--color-success-light);
+    color: var(--color-success);
+}
+
+.message.error {
+    background-color: var(--color-error-light);
+    color: var(--color-error);
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-text);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Form Container Styles */
+.form-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: var(--color-background);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* File Input Styles */
+input[type="file"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 2px dashed var(--color-border);
+    border-radius: 8px;
+    background-color: var(--color-background-alt);
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+input[type="file"]:hover {
+    border-color: var(--color-primary);
 } 

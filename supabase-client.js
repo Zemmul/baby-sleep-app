@@ -161,5 +161,92 @@ export async function searchPoints(query) {
   }
 }
 
+// Function to upload an image to Supabase Storage
+export async function uploadImage(file, folder = 'point-images') {
+  try {
+    // Create a unique file name to avoid collisions
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+    const filePath = `${folder}/${fileName}`;
+    
+    // Upload the file to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from(folder)
+      .upload(filePath, file);
+    
+    if (error) throw error;
+    
+    // Get the public URL of the uploaded file
+    const { data: { publicUrl } } = supabase.storage
+      .from(folder)
+      .getPublicUrl(filePath);
+    
+    return publicUrl;
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    throw error;
+  }
+}
+
+// Function to upload multiple images
+export async function uploadImages(files, folder = 'point-images') {
+  try {
+    const uploadPromises = files.map(file => uploadImage(file, folder));
+    const urls = await Promise.all(uploadPromises);
+    return urls;
+  } catch (error) {
+    console.error('Error uploading images:', error);
+    throw error;
+  }
+}
+
+// Upload images to Supabase storage
+async function uploadImages(files) {
+    const imageUrls = [];
+    
+    for (const file of files) {
+        if (!file.type.startsWith('image/')) {
+            throw new Error('Only image files are allowed');
+        }
+        
+        // Generate a unique filename
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+        const filePath = `points/${fileName}`;
+        
+        // Upload the file
+        const { data, error } = await supabase.storage
+            .from('points')
+            .upload(filePath, file);
+            
+        if (error) {
+            throw new Error(`Error uploading image: ${error.message}`);
+        }
+        
+        // Get the public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('points')
+            .getPublicUrl(filePath);
+            
+        imageUrls.push(publicUrl);
+    }
+    
+    return imageUrls;
+}
+
+// Delete images from Supabase storage
+async function deleteImages(imageUrls) {
+    for (const url of imageUrls) {
+        const filePath = url.split('/').pop();
+        const { error } = await supabase.storage
+            .from('points')
+            .remove([`points/${filePath}`]);
+            
+        if (error) {
+            console.error(`Error deleting image: ${error.message}`);
+        }
+    }
+}
+
 // Export the supabase client for direct use if needed
 export { supabase }; 

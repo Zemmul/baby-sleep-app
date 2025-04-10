@@ -12,6 +12,7 @@ const videoDescriptionElement = document.getElementById('video-description');
 
 // Initialize YouTube API
 function onYouTubeIframeAPIReady() {
+    console.log('YouTube IFrame API is ready');
     player = new YT.Player('player', {
         height: '100%',
         width: '100%',
@@ -26,13 +27,15 @@ function onYouTubeIframeAPIReady() {
         },
         events: {
             'onReady': onPlayerReady,
-            'onStateChange': onPlayerStateChange
+            'onStateChange': onPlayerStateChange,
+            'onError': onPlayerError
         }
     });
 }
 
 // Player ready event
 function onPlayerReady(event) {
+    console.log('Player is ready');
     // Load the default playlist
     loadPlaylist(currentPlaylistId);
     
@@ -43,8 +46,15 @@ function onPlayerReady(event) {
     });
 }
 
+// Player error event
+function onPlayerError(event) {
+    console.error('Player error:', event.data);
+    playlistContainer.innerHTML = '<div class="error">Error loading video player. Please try refreshing the page.</div>';
+}
+
 // Player state change event
 function onPlayerStateChange(event) {
+    console.log('Player state changed:', event.data);
     // When video ends, play the next video
     if (event.data === YT.PlayerState.ENDED) {
         playNextVideo();
@@ -53,11 +63,12 @@ function onPlayerStateChange(event) {
 
 // Load playlist videos
 function loadPlaylist(playlistId) {
+    console.log('Loading playlist:', playlistId);
     // Show loading state
     playlistContainer.innerHTML = '<div class="loading">Loading videos...</div>';
     
     // Fetch playlist data from YouTube API
-    fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=AIzaSyA-C53187jr5rx5DS96ReamkZYKG-KIAlM`)
+    fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=AIzaSyDwliVOb7jaCkLwN8l27Gjd3La-WMmnM18`)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
@@ -76,7 +87,7 @@ function loadPlaylist(playlistId) {
                     playVideo(0);
                 }
             } else {
-                playlistContainer.innerHTML = '<div class="error">No videos found in this playlist.</div>';
+                throw new Error('No videos found in playlist');
             }
         })
         .catch(error => {

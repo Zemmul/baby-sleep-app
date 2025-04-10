@@ -11,112 +11,142 @@
 </head>
 <body>
     <header>
-        <div class="container">
-            <a href="index.html" class="logo">Baby Sleep App</a>
-            <nav>
-                <ul>
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="baby-days-out.html">Baby Days Out</a></li>
-                    <li><a href="add-point.html" class="active">Add a Point</a></li>
-                </ul>
-            </nav>
-        </div>
+        <a href="index.html" class="back-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 18l-6-6 6-6"></path>
+            </svg>
+        </a>
+        <h1>Add a New Point</h1>
+        <p class="subtitle">Help other parents by adding a new location to our map</p>
     </header>
 
     <main>
         <div class="container">
-            <h1>Add a New Point</h1>
-            <p>Help other parents by adding a new location to our map.</p>
-            
-            <form id="add-point-form" class="form">
-                <div class="form-group">
-                    <label for="type">Type of Location</label>
-                    <select id="type" name="type" required>
-                        <option value="">Select a type</option>
-                        <option value="toilet">Toilet</option>
-                        <option value="parent_facility">Parent Facility</option>
-                        <option value="event">Event</option>
-                        <option value="park">Park</option>
-                        <option value="playground">Playground</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="title">Title</label>
-                    <input type="text" id="title" name="title" required placeholder="Enter the name of the location">
-                </div>
-                
-                <div class="form-group">
-                    <label for="description">Description</label>
-                    <textarea id="description" name="description" rows="4" placeholder="Describe the location and its features"></textarea>
-                </div>
-                
-                <div class="form-row">
+            <div class="form-container">
+                <form id="add-point-form" class="form">
                     <div class="form-group">
-                        <label for="latitude">Latitude</label>
-                        <input type="number" id="latitude" name="latitude" step="any" required placeholder="e.g., -37.8136">
+                        <label for="type">Type of Location</label>
+                        <select id="type" name="type">
+                            <option value="">Select a type</option>
+                            <option value="toilet">Toilet</option>
+                            <option value="parent_facility">Parent Facility</option>
+                            <option value="event">Event</option>
+                            <option value="park">Park</option>
+                            <option value="playground">Playground</option>
+                        </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="longitude">Longitude</label>
-                        <input type="number" id="longitude" name="longitude" step="any" required placeholder="e.g., 144.9631">
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="address">Address</label>
-                    <input type="text" id="address" name="address" placeholder="Full address of the location">
-                </div>
-                
-                <div class="form-group">
-                    <label for="facilities">Facilities (comma separated)</label>
-                    <input type="text" id="facilities" name="facilities" placeholder="e.g., Baby change, Nursing room, Microwave">
-                </div>
-                
-                <div class="form-group">
-                    <label for="images">Image URLs (comma separated)</label>
-                    <input type="text" id="images" name="images" placeholder="e.g., https://example.com/image1.jpg, https://example.com/image2.jpg">
-                </div>
-                
-                <div class="form-group">
-                    <label for="cost">Cost (optional)</label>
-                    <input type="number" id="cost" name="cost" step="0.01" placeholder="e.g., 5.00">
-                </div>
-                
-                <div class="form-group">
-                    <label for="age_group">Age Group</label>
-                    <input type="text" id="age_group" name="age_group" placeholder="e.g., 0-2 years, 3-5 years">
-                </div>
-                
-                <div class="form-group">
-                    <label for="contact_info">Contact Information</label>
-                    <input type="text" id="contact_info" name="contact_info" placeholder="Phone number or email">
-                </div>
-                
-                <div class="form-group">
-                    <label for="website_url">Website URL</label>
-                    <input type="url" id="website_url" name="website_url" placeholder="https://example.com">
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="start_time">Start Time (for events)</label>
-                        <input type="datetime-local" id="start_time" name="start_time">
+                        <label for="title">Title</label>
+                        <input type="text" id="title" name="title" placeholder="Enter the name of the location">
                     </div>
                     
                     <div class="form-group">
-                        <label for="end_time">End Time (for events)</label>
-                        <input type="datetime-local" id="end_time" name="end_time">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="4" placeholder="Describe the location and its features"></textarea>
                     </div>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="submit" class="button primary">Submit</button>
-                    <button type="button" id="get-location" class="button secondary">Get My Location</button>
-                </div>
-            </form>
-            
-            <div id="form-message" class="message" style="display: none;"></div>
+                    
+                    <hr class="form-divider">
+                    
+                    <div class="form-group">
+                        <button type="button" id="get-location" class="button secondary">Get My Location</button>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="latitude">Latitude</label>
+                            <input type="number" id="latitude" name="latitude" step="any" placeholder="e.g., -37.8136">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="longitude">Longitude</label>
+                            <input type="number" id="longitude" name="longitude" step="any" placeholder="e.g., 144.9631">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="address">Address</label>
+                        <input type="text" id="address" name="address" placeholder="Full address of the location">
+                    </div>
+                    
+                    <hr class="form-divider">
+                    
+                    <div class="form-group">
+                        <label for="facilities">Facilities (comma separated)</label>
+                        <input type="text" id="facilities" name="facilities" placeholder="e.g., Baby change, Nursing room, Microwave">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="images">Images</label>
+                        <input type="file" id="images" name="images" multiple accept="image/*">
+                        <div id="imagePreview" class="image-preview"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="cost">Cost (optional)</label>
+                        <input type="number" id="cost" name="cost" step="0.01" placeholder="e.g., 5.00">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Age Group</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="age-newborns" name="age_group" value="Newborns (0-3 months)">
+                                <label for="age-newborns">Newborns (0-3 months)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="age-sitters" name="age_group" value="Sitters (4-7 months)">
+                                <label for="age-sitters">Sitters (4-7 months)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="age-crawlers" name="age_group" value="Crawlers (7-12 months)">
+                                <label for="age-crawlers">Crawlers (7-12 months)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="age-walkers" name="age_group" value="Walkers (12+ months)">
+                                <label for="age-walkers">Walkers (12+ months)</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contact_info">Email</label>
+                        <input type="email" id="contact_info" name="contact_info" placeholder="Enter your email address">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="website_url">Website URL</label>
+                        <input type="url" id="website_url" name="website_url" placeholder="https://example.com">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="start_time">Start Time (for events)</label>
+                            <input type="datetime-local" id="start_time" name="start_time">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="end_time">End Time (for events)</label>
+                            <input type="datetime-local" id="end_time" name="end_time">
+                        </div>
+                    </div>
+                    
+                    <div class="message-container">
+                        <div id="loadingMessage" class="message loading" style="display: none;">
+                            <div class="spinner"></div>
+                            <span>Submitting...</span>
+                        </div>
+                        <div id="successMessage" class="message success" style="display: none;">
+                            Point added successfully! It will be reviewed before appearing on the map.
+                        </div>
+                        <div id="errorMessage" class="message error" style="display: none;"></div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="button primary">Submit</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </main>
 
@@ -134,29 +164,64 @@
         const getLocationButton = document.getElementById('get-location');
         const messageElement = document.getElementById('form-message');
         
+        // File upload preview
+        const imageInput = document.getElementById('images');
+        const imagePreview = document.getElementById('imagePreview');
+
+        imageInput.addEventListener('change', () => {
+            imagePreview.innerHTML = '';
+            const files = Array.from(imageInput.files);
+            
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const preview = document.createElement('div');
+                        preview.className = 'preview-item';
+                        
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'remove-image';
+                        removeBtn.innerHTML = '×';
+                        removeBtn.onclick = () => {
+                            preview.remove();
+                            // Create a new FileList without the removed file
+                            const dt = new DataTransfer();
+                            const remainingFiles = Array.from(imageInput.files)
+                                .filter(f => f !== file);
+                            remainingFiles.forEach(f => dt.items.add(f));
+                            imageInput.files = dt.files;
+                        };
+                        
+                        preview.appendChild(img);
+                        preview.appendChild(removeBtn);
+                        imagePreview.appendChild(preview);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+        
         // Handle form submission
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Show loading message
-            messageElement.textContent = 'Submitting...';
-            messageElement.className = 'message loading';
-            messageElement.style.display = 'block';
+            const submitButton = form.querySelector('button[type="submit"]');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
             
             try {
+                // Show loading state
+                submitButton.disabled = true;
+                loadingMessage.style.display = 'block';
+                successMessage.style.display = 'none';
+                errorMessage.style.display = 'none';
+                
                 // Get form data
                 const formData = new FormData(form);
-                
-                // Convert facilities and images from comma-separated strings to arrays
-                const facilities = formData.get('facilities') 
-                    ? formData.get('facilities').split(',').map(item => item.trim()).filter(Boolean)
-                    : [];
-                
-                const images = formData.get('images')
-                    ? formData.get('images').split(',').map(item => item.trim()).filter(Boolean)
-                    : [];
-                
-                // Create point data object
                 const pointData = {
                     type: formData.get('type'),
                     title: formData.get('title'),
@@ -164,33 +229,43 @@
                     latitude: parseFloat(formData.get('latitude')),
                     longitude: parseFloat(formData.get('longitude')),
                     address: formData.get('address'),
-                    facilities: facilities,
-                    images: images,
-                    cost: formData.get('cost') ? parseFloat(formData.get('cost')) : null,
+                    facilities: formData.getAll('facilities'),
+                    cost: formData.get('cost'),
                     age_group: formData.get('age_group'),
                     contact_info: formData.get('contact_info'),
                     website_url: formData.get('website_url'),
-                    start_time: formData.get('start_time') ? new Date(formData.get('start_time')).toISOString() : null,
-                    end_time: formData.get('end_time') ? new Date(formData.get('end_time')).toISOString() : null,
-                    submission_status: 'pending'
+                    start_time: formData.get('start_time') || null,
+                    end_time: formData.get('end_time') || null,
+                    submission_status: 'pending',
+                    submitted_by: 'user_id', // Replace with actual user ID when auth is implemented
                 };
                 
-                // Add the point to the database
-                const result = await addPoint(pointData);
+                // Handle image uploads
+                const imageFiles = form.querySelector('input[type="file"]').files;
+                if (imageFiles.length > 0) {
+                    pointData.images = await uploadImages(Array.from(imageFiles));
+                }
+                
+                // Add point to database
+                const { data, error } = await addPoint(pointData);
+                
+                if (error) {
+                    throw new Error(error.message);
+                }
                 
                 // Show success message
-                messageElement.textContent = 'Point added successfully! It will be reviewed before appearing on the map.';
-                messageElement.className = 'message success';
-                
-                // Reset the form
+                successMessage.style.display = 'block';
                 form.reset();
+                document.getElementById('imagePreview').innerHTML = '';
                 
             } catch (error) {
-                console.error('Error adding point:', error);
-                
-                // Show error message
-                messageElement.textContent = `Error: ${error.message}`;
-                messageElement.className = 'message error';
+                console.error('Error submitting point:', error);
+                errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
+            } finally {
+                // Reset loading state
+                submitButton.disabled = false;
+                loadingMessage.style.display = 'none';
             }
         });
         

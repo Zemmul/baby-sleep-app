@@ -4,10 +4,10 @@ const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
     '/sleep-sounds.html',
-    '/rhyme-time.html',
+    '/baby-time.html',
     '/styles.css',
     '/app.js',
-    '/rhyme-time.js',
+    '/baby-time.js',
     '/manifest.json',
     '/assets/images/default-cover.svg',
     '/assets/images/icon-192x192.svg',
@@ -76,6 +76,12 @@ self.addEventListener('fetch', event => {
                     return caches.match(event.request);
                 })
         );
+        return;
+    }
+
+    // For YouTube API requests, always fetch from network
+    if (event.request.url.includes('youtube.com') || event.request.url.includes('googleapis.com')) {
+        event.respondWith(fetch(event.request));
         return;
     }
 
