@@ -86,18 +86,26 @@ function initMap() {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
     }).addTo(map);
     
-    // Add custom zoom control to bottom right
+    // Add attribution control first
+    L.control.attribution({
+        position: 'bottomright',
+        prefix: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }).addTo(map);
+    
+    // Add custom zoom control second
     L.control.zoom({
         position: 'bottomright'
     }).addTo(map);
     
-    // Add location finder button
+    // Add location finder button last
     const locationButton = L.control({position: 'bottomright'});
     locationButton.onAdd = function() {
         const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+        div.style.border = 'none';
+        div.style.boxShadow = '0 2px 6px var(--shadow-color) !important';
         div.innerHTML = `
-            <a href="#" title="Find my location" style="width: 30px; height: 30px; line-height: 30px; text-align: center; display: block; background-color: white; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.4);">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <a href="#" title="Find my location" style="width: 30px; height: 30px; line-height: 35px; text-align: center; display: block; background-color: white; border-radius: 4px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8572" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <circle cx="12" cy="12" r="3"></circle>
                 </svg>
@@ -147,13 +155,6 @@ function initMap() {
         return div;
     };
     locationButton.addTo(map);
-    
-    // Add attribution control to bottom right, below zoom controls
-    const attributionControl = L.control.attribution({
-        position: 'bottomright',
-        prefix: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-    });
-    attributionControl.addTo(map);
     
     // Try to get the user's location
     if (navigator.geolocation) {
@@ -373,7 +374,7 @@ function setupEventListeners() {
     });
     
     // Filter checkboxes change
-    [filterFacilitiesCheckbox, filterToiletsCheckbox, filterEventsCheckbox].forEach(checkbox => {
+    [filterFacilitiesCheckbox, filterEventsCheckbox].forEach(checkbox => {
         checkbox.addEventListener('change', () => {
             // Update active filters array
             updateActiveFilters();
@@ -392,11 +393,10 @@ function setupEventListeners() {
         
         // Reset all checkboxes to checked
         filterFacilitiesCheckbox.checked = true;
-        filterToiletsCheckbox.checked = true;
         filterEventsCheckbox.checked = true;
         
         // Reset active filters
-        activeFilters = ['facilities', 'toilets', 'events'];
+        activeFilters = ['facilities', 'events'];
         
         // Reset date filter
         currentFilter = 'all';
@@ -448,10 +448,6 @@ function updateActiveFilters() {
     
     if (filterFacilitiesCheckbox.checked) {
         activeFilters.push('facilities');
-    }
-    
-    if (filterToiletsCheckbox.checked) {
-        activeFilters.push('toilets');
     }
     
     if (filterEventsCheckbox.checked) {
@@ -605,8 +601,6 @@ async function loadData(location) {
 // Get marker color based on place type
 function getMarkerColor(place) {
     switch (place.type) {
-        case 'toilet':
-            return '#4CAF50'; // Green
         case 'facility':
             return '#2196F3'; // Blue
         case 'event':
@@ -1110,20 +1104,8 @@ function getSampleData(location = { lat: -37.8136, lng: 144.9631 }) { // Default
     console.log('Sample facilities:', sampleFacilities);
     console.log('Sample events:', sampleEvents);
     
-    // Get sample toilets
-    let sampleToilets = [];
-    if (window.ToiletMapAPI && typeof window.ToiletMapAPI.getSampleToiletData === 'function') {
-        console.log('ToiletMapAPI is available, getting sample toilet data...');
-        sampleToilets = window.ToiletMapAPI.getSampleToiletData(location);
-        console.log('Sample toilets from API:', sampleToilets);
-    } else {
-        console.log('ToiletMapAPI not available, creating fallback sample toilets...');
-        sampleToilets = createSampleToilets(location);
-        console.log('Fallback sample toilets:', sampleToilets);
-    }
-    
     // Combine all sample data
-    const allSampleData = [...sampleFacilities, ...sampleEvents, ...sampleToilets];
+    const allSampleData = [...sampleFacilities, ...sampleEvents];
     console.log('Total sample data generated:', allSampleData.length);
     
     return allSampleData;

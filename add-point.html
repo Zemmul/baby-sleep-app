@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Add a new point to the Baby Days Out map">
+    <title>Add a Point - Baby Days Out</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js" type="module"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a href="index.html" class="logo">Baby Sleep App</a>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="baby-days-out.html">Baby Days Out</a></li>
+                    <li><a href="add-point.html" class="active">Add a Point</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <h1>Add a New Point</h1>
+            <p>Help other parents by adding a new location to our map.</p>
+            
+            <form id="add-point-form" class="form">
+                <div class="form-group">
+                    <label for="type">Type of Location</label>
+                    <select id="type" name="type" required>
+                        <option value="">Select a type</option>
+                        <option value="toilet">Toilet</option>
+                        <option value="parent_facility">Parent Facility</option>
+                        <option value="event">Event</option>
+                        <option value="park">Park</option>
+                        <option value="playground">Playground</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" name="title" required placeholder="Enter the name of the location">
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="4" placeholder="Describe the location and its features"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="latitude">Latitude</label>
+                        <input type="number" id="latitude" name="latitude" step="any" required placeholder="e.g., -37.8136">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="longitude">Longitude</label>
+                        <input type="number" id="longitude" name="longitude" step="any" required placeholder="e.g., 144.9631">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address">Address</label>
+                    <input type="text" id="address" name="address" placeholder="Full address of the location">
+                </div>
+                
+                <div class="form-group">
+                    <label for="facilities">Facilities (comma separated)</label>
+                    <input type="text" id="facilities" name="facilities" placeholder="e.g., Baby change, Nursing room, Microwave">
+                </div>
+                
+                <div class="form-group">
+                    <label for="images">Image URLs (comma separated)</label>
+                    <input type="text" id="images" name="images" placeholder="e.g., https://example.com/image1.jpg, https://example.com/image2.jpg">
+                </div>
+                
+                <div class="form-group">
+                    <label for="cost">Cost (optional)</label>
+                    <input type="number" id="cost" name="cost" step="0.01" placeholder="e.g., 5.00">
+                </div>
+                
+                <div class="form-group">
+                    <label for="age_group">Age Group</label>
+                    <input type="text" id="age_group" name="age_group" placeholder="e.g., 0-2 years, 3-5 years">
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact_info">Contact Information</label>
+                    <input type="text" id="contact_info" name="contact_info" placeholder="Phone number or email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="website_url">Website URL</label>
+                    <input type="url" id="website_url" name="website_url" placeholder="https://example.com">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="start_time">Start Time (for events)</label>
+                        <input type="datetime-local" id="start_time" name="start_time">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="end_time">End Time (for events)</label>
+                        <input type="datetime-local" id="end_time" name="end_time">
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="button primary">Submit</button>
+                    <button type="button" id="get-location" class="button secondary">Get My Location</button>
+                </div>
+            </form>
+            
+            <div id="form-message" class="message" style="display: none;"></div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Baby Sleep App. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { addPoint, supabase } from './supabase-client.js';
+        
+        // Get form elements
+        const form = document.getElementById('add-point-form');
+        const getLocationButton = document.getElementById('get-location');
+        const messageElement = document.getElementById('form-message');
+        
+        // Handle form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Show loading message
+            messageElement.textContent = 'Submitting...';
+            messageElement.className = 'message loading';
+            messageElement.style.display = 'block';
+            
+            try {
+                // Get form data
+                const formData = new FormData(form);
+                
+                // Convert facilities and images from comma-separated strings to arrays
+                const facilities = formData.get('facilities') 
+                    ? formData.get('facilities').split(',').map(item => item.trim()).filter(Boolean)
+                    : [];
+                
+                const images = formData.get('images')
+                    ? formData.get('images').split(',').map(item => item.trim()).filter(Boolean)
+                    : [];
+                
+                // Create point data object
+                const pointData = {
+                    type: formData.get('type'),
+                    title: formData.get('title'),
+                    description: formData.get('description'),
+                    latitude: parseFloat(formData.get('latitude')),
+                    longitude: parseFloat(formData.get('longitude')),
+                    address: formData.get('address'),
+                    facilities: facilities,
+                    images: images,
+                    cost: formData.get('cost') ? parseFloat(formData.get('cost')) : null,
+                    age_group: formData.get('age_group'),
+                    contact_info: formData.get('contact_info'),
+                    website_url: formData.get('website_url'),
+                    start_time: formData.get('start_time') ? new Date(formData.get('start_time')).toISOString() : null,
+                    end_time: formData.get('end_time') ? new Date(formData.get('end_time')).toISOString() : null,
+                    submission_status: 'pending'
+                };
+                
+                // Add the point to the database
+                const result = await addPoint(pointData);
+                
+                // Show success message
+                messageElement.textContent = 'Point added successfully! It will be reviewed before appearing on the map.';
+                messageElement.className = 'message success';
+                
+                // Reset the form
+                form.reset();
+                
+            } catch (error) {
+                console.error('Error adding point:', error);
+                
+                // Show error message
+                messageElement.textContent = `Error: ${error.message}`;
+                messageElement.className = 'message error';
+            }
+        });
+        
+        // Handle get location button click
+        getLocationButton.addEventListener('click', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        // Set latitude and longitude fields
+                        document.getElementById('latitude').value = position.coords.latitude;
+                        document.getElementById('longitude').value = position.coords.longitude;
+                        
+                        // Try to get address using reverse geocoding
+                        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data && data.display_name) {
+                                    document.getElementById('address').value = data.display_name;
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error getting address:', error);
+                            });
+                    },
+                    error => {
+                        console.error('Error getting location:', error);
+                        messageElement.textContent = `Error getting location: ${error.message}`;
+                        messageElement.className = 'message error';
+                        messageElement.style.display = 'block';
+                    }
+                );
+            } else {
+                messageElement.textContent = 'Geolocation is not supported by your browser.';
+                messageElement.className = 'message error';
+                messageElement.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html> 

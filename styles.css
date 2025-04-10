@@ -419,11 +419,10 @@ header .subtitle {
 /* Hero image */
 .hero-image {
     width: 100%;
-    max-width: 400px;
+    max-width: 300px;
     height: auto;
-    margin: 0 auto var(--spacing-md) auto;
+    margin: 0 auto var(--spacing-lg);
     display: block;
-    object-fit: contain;
 }
 
 /* Menu container styles */
@@ -1581,75 +1580,6 @@ header .subtitle {
     opacity: 0.8;
 }
 
-/* Hero Image */
-.hero-image {
-    width: 100%;
-    max-width: 300px;
-    height: auto;
-    margin: 0 auto var(--spacing-lg);
-    display: block;
-}
-
-/* Responsive adjustments for tile grid */
-@media (max-width: 768px) {
-    .tile-grid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: var(--spacing-sm);
-        padding: var(--spacing-sm);
-    }
-    
-    .tile {
-        padding: var(--spacing-sm);
-    }
-    
-    .tile-icon {
-        width: 100px;
-        height: 100px;
-    }
-    
-    .tile h2 {
-        font-size: 1.1rem;
-    }
-    
-    .tile p {
-        font-size: 0.8rem;
-    }
-    
-    .hero-image {
-        max-width: 200px;
-        margin-bottom: var(--spacing-md);
-    }
-}
-
-.toilet-icon {
-    display: inline-block;
-    width: 24px;
-    height: 24px;
-    margin-right: 8px;
-    background-image: url('assets/images/toilet.svg');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    vertical-align: middle;
-}
-
-.toilet-info {
-    margin-top: 8px;
-    padding: 8px;
-    background-color: rgba(253, 169, 100, 0.1);
-    border-radius: 4px;
-    font-size: 0.9em;
-}
-
-.toilet-info div {
-    margin: 4px 0;
-    color: #9D8576;
-}
-
-.toilet-info div:last-child {
-    color: #FDA964;
-}
-
 /* Map page specific styles */
 .map-page {
     margin: 0;
@@ -2321,4 +2251,7 @@ input:checked + .toggle-slider:before {
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 12px;
-} 
+}
+
+/* Import form styles */
+@import url('form-styles.css'); 
