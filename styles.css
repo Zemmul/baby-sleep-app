@@ -574,7 +574,7 @@ header .subtitle {
     
     .sound-card {
         flex: 0 0 250px;
-        height: 375px;
+        height: 465px;
     }
     
     .album-art-wrapper {
@@ -978,12 +978,9 @@ header .subtitle {
 }
 
 .info-section h3 {
-    font-family: 'Georgia', serif;
-    font-size: 1.5rem;
-    color: var(--heading-color);
-    margin: 40px 0 20px;
-    border-bottom: 1px solid rgba(157, 133, 114, 0.2);
-    padding-bottom: 10px;
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
+    color: var(--primary-color);
 }
 
 .info-section h4 {
@@ -999,12 +996,31 @@ header .subtitle {
 }
 
 .info-section ul {
-    margin: 0 0 20px 20px;
-    line-height: 1.6;
+    list-style: disc;
+    margin-left: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    padding-left: var(--spacing-sm);
 }
 
 .info-section li {
-    margin-bottom: 10px;
+    margin-bottom: var(--spacing-sm);
+    line-height: 1.6;
+}
+
+.info-image-container {
+    margin: var(--spacing-md) 0;
+    text-align: center;
+}
+
+.info-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px var(--shadow-color);
+    display: block;
+    margin: 0 auto;
+    /* Set a max-width to prevent it getting too large on desktop */
+    max-width: 450px; 
 }
 
 .key-points-summary {
@@ -1055,10 +1071,11 @@ header .subtitle {
 }
 
 .advantage-item {
-    background: rgba(255, 255, 255, 0.4);
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background-color: var(--card-background);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-md);
+    box-shadow: 0 4px 12px var(--shadow-color);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -1075,10 +1092,11 @@ header .subtitle {
 }
 
 .myth-item {
-    background: rgba(255, 255, 255, 0.4);
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background-color: var(--card-background);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-md);
+    box-shadow: 0 4px 12px var(--shadow-color);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -1119,11 +1137,11 @@ header .subtitle {
 
 /* Benefit cards for baby-time page */
 .benefit-card {
-    background: rgba(255, 255, 255, 0.4);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background-color: var(--card-background);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-md);
+    box-shadow: 0 4px 12px var(--shadow-color);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -1212,6 +1230,18 @@ header .subtitle {
     .advantage-item,
     .myth-item {
         padding: 15px;
+    }
+
+    .info-image-container {
+        margin: var(--spacing-sm) 0;
+    }
+
+    .info-image {
+        max-width: 90%; /* Slightly smaller max-width on mobile */
+    }
+
+    .info-section ul {
+        margin-left: var(--spacing-sm);
     }
 }
 
