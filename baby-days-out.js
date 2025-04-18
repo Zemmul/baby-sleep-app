@@ -95,6 +95,15 @@ function initMap() {
     // Initialize markers array
     markers = [];
     
+    // Set all filter checkboxes to checked by default
+    const filterFacilities = document.getElementById('filter-facilities');
+    const filterEvents = document.getElementById('filter-events');
+    const filterToilets = document.getElementById('filter-toilets');
+    
+    if (filterFacilities) filterFacilities.checked = true;
+    if (filterEvents) filterEvents.checked = true;
+    if (filterToilets) filterToilets.checked = true;
+    
     // Load initial data
     loadData();
     
@@ -314,9 +323,12 @@ function setupEventListeners() {
     }
     
     // Sidebar toggle
-    sidebarToggle.addEventListener('click', () => {
-        document.querySelector('.sidebar').classList.toggle('collapsed');
-    });
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+            document.querySelector('.sidebar').classList.toggle('collapsed');
+        });
+    }
 
     // Tab switching functionality
     const tabs = document.querySelectorAll('.sidebar-tab');
@@ -572,77 +584,56 @@ function getMarkerColor(place) {
 
 // Function to render the directory
 function renderDirectory(places) {
-    console.log('Rendering directory with places:', places);
-    
     if (!directoryContainer) {
-        console.error('Directory container not found!');
+        console.error('Directory container not found');
         return;
     }
     
     // Clear existing content
     directoryContainer.innerHTML = '';
     
-    if (places.length === 0) {
-        console.log('No places to display');
-        directoryContainer.innerHTML = '<p class="no-results">No places found matching your criteria.</p>';
+    if (!places || places.length === 0) {
+        directoryContainer.innerHTML = '<div class="no-results">No places found</div>';
         return;
     }
     
-    // Create a document fragment for better performance
-    const fragment = document.createDocumentFragment();
+    // Create a grid container for the tiles
+    const gridContainer = document.createElement('div');
+    gridContainer.className = 'directory-grid';
     
-    // Add each place to the directory
     places.forEach(place => {
-        console.log('Creating element for place:', place.name);
+        const placeCard = document.createElement('div');
+        placeCard.className = 'place-card';
         
-        const placeElement = document.createElement('div');
-        placeElement.className = 'place-card';
-        placeElement.dataset.id = place.id;
-        
-        // Calculate distance if we have current location
-        let distanceText = '';
-        if (currentLocation) {
-            const distance = calculateDistance(
-                currentLocation.lat,
-                currentLocation.lng,
-                place.location.lat,
-                place.location.lng
-            );
-            distanceText = `<span class="distance">${distance.toFixed(1)} km away</span>`;
-        }
-        
-        // Create the place card HTML
-        placeElement.innerHTML = `
+        // Create the card content
+        const content = `
             <div class="place-header">
                 <h3>${place.name}</h3>
-                ${distanceText}
+                ${place.distance ? `<span class="distance">${place.distance.toFixed(1)}km</span>` : ''}
             </div>
-            <p class="description">${place.description}</p>
-            <div class="place-details">
+            <p class="description">${place.description || ''}</p>
+            ${place.amenities && place.amenities.length > 0 ? `
                 <div class="amenities">
-                    ${place.amenities && place.amenities.length > 0 
-                        ? place.amenities.map(amenity => `<span class="amenity">${amenity}</span>`).join('') 
-                        : ''}
+                    ${place.amenities.map(amenity => `
+                        <span class="amenity">${amenity}</span>
+                    `).join('')}
                 </div>
+            ` : ''}
+            ${place.tags && place.tags.length > 0 ? `
                 <div class="tags">
-                    ${place.tags && place.tags.length > 0 
-                        ? place.tags.map(tag => `<span class="tag">${tag}</span>`).join('') 
-                        : ''}
+                    ${place.tags.map(tag => `
+                        <span class="tag">${tag}</span>
+                    `).join('')}
                 </div>
-            </div>
+            ` : ''}
+            <button class="view-details" onclick="selectPlace(${place.lat}, ${place.lng})">View on Map</button>
         `;
         
-        // Add click event to show place details
-        placeElement.addEventListener('click', () => {
-            showPlaceDetails(place);
-        });
-        
-        fragment.appendChild(placeElement);
+        placeCard.innerHTML = content;
+        gridContainer.appendChild(placeCard);
     });
     
-    // Append all place elements at once
-    directoryContainer.appendChild(fragment);
-    console.log('Directory rendering complete');
+    directoryContainer.appendChild(gridContainer);
 }
 
 // Format date for display
