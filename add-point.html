@@ -230,14 +230,20 @@
                     latitude: parseFloat(formData.get('latitude')),
                     longitude: parseFloat(formData.get('longitude')),
                     address: formData.get('address'),
-                    facilities: formData.getAll('facilities'),
-                    cost: formData.get('cost'),
-                    age_group: formData.get('age_group'),
+                    facilities: formData.get('facilities').split(',').map(f => f.trim()).filter(f => f),
+                    cost: formData.get('cost') ? parseFloat(formData.get('cost')) : 0,
+                    age_group: Array.from(form.querySelectorAll('input[name="age_group"]:checked'))
+                        .map(cb => cb.value)
+                        .join(', '),
                     contact_info: formData.get('contact_info'),
                     website_url: formData.get('website_url'),
-                    start_time: formData.get('start_time') || null,
-                    end_time: formData.get('end_time') || null,
-                    submission_status: 'pending'
+                    start_time: formData.get('start_time') ? 
+                        new Date(formData.get('start_time')).toISOString() : null,
+                    end_time: formData.get('end_time') ? 
+                        new Date(formData.get('end_time')).toISOString() : null,
+                    submission_status: 'pending',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
                 };
                 
                 // Handle image uploads
