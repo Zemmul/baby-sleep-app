@@ -25,6 +25,9 @@ const filterEventsCheckbox = document.getElementById('filter-events');
 const resetFiltersLink = document.getElementById('reset-filters');
 const sidebarToggle = document.getElementById('sidebar-toggle');
 
+// Import Supabase client functions
+import { fetchAllPoints, fetchPointsByType, fetchPointsInBounds } from './supabase-client.js';
+
 // Date helper functions
 function isToday(dateString) {
     if (!dateString) return false;
@@ -486,8 +489,8 @@ function updateMapMarkers() {
     // Add markers for filtered places
     filteredPlaces.forEach(place => {
         const markerColor = getMarkerColor(place);
-        const lat = place.latitude || place.lat; // Support both formats
-        const lng = place.longitude || place.lng; // Support both formats
+        const lat = place.location ? place.location.lat : (place.latitude || place.lat);
+        const lng = place.location ? place.location.lng : (place.longitude || place.lng);
         
         const marker = L.marker([lat, lng], {
             icon: L.divIcon({
@@ -530,17 +533,62 @@ async function loadData(location) {
     markers = [];
     
     try {
-        // Get sample data
-        console.log('Getting sample data...');
+        // Fetch data from Supabase
+        console.log('Fetching data from Supabase...');
+        let supabaseData = [];
+        
+        // If we have a location, fetch points within a bounding box
+        if (location && location.lat && location.lng) {
+            // Calculate a bounding box (approximately 10km radius)
+            const latOffset = 0.1; // Roughly 11km
+            const lngOffset = 0.1; // Roughly 11km at the equator
+            
+            const minLat = location.lat - latOffset;
+            const maxLat = location.lat + latOffset;
+            const minLng = location.lng - lngOffset;
+            const maxLng = location.lng + lngOffset;
+            
+            console.log('Fetching points in bounds:', { minLat, maxLat, minLng, maxLng });
+            supabaseData = await fetchPointsInBounds(minLat, maxLat, minLng, maxLng);
+        } else {
+            // If no location, fetch all points
+            console.log('Fetching all points');
+            supabaseData = await fetchAllPoints();
+        }
+        
+        console.log('Supabase data retrieved:', supabaseData);
+        
+        // Transform Supabase data to match our expected format
+        const transformedData = supabaseData.map(point => ({
+            id: point.id,
+            name: point.title,
+            description: point.description,
+            type: point.type,
+            location: {
+                lat: point.latitude,
+                lng: point.longitude
+            },
+            address: point.address,
+            amenities: point.facilities || [],
+            cost: point.cost,
+            ageGroup: point.age_group,
+            contactInfo: point.contact_info,
+            websiteUrl: point.website_url,
+            startTime: point.start_time,
+            endTime: point.end_time,
+            submissionStatus: point.submission_status,
+            submittedBy: point.submitted_by,
+            createdAt: point.created_at,
+            updatedAt: point.updated_at
+        }));
+        
+        // Get sample data as fallback
+        console.log('Getting sample data as fallback...');
         const sampleData = getSampleData(location);
         console.log('Sample data retrieved:', sampleData);
         
-        console.log('Getting additional dummy data...');
-        const additionalData = getAdditionalDummyData(location);
-        console.log('Additional dummy data retrieved:', additionalData);
-        
-        // Combine all data
-        places = [...sampleData, ...additionalData];
+        // Combine Supabase data with sample data
+        places = [...transformedData, ...sampleData];
         
         console.log(`Total places: ${places.length}`);
         
@@ -576,7 +624,7 @@ async function loadData(location) {
                 <div class="marker-popup">
                     <h3>${place.name}</h3>
                     <p>${place.description}</p>
-                    ${place.amenities ? `<p><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
+                    ${place.amenities && place.amenities.length > 0 ? `<p><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
                     <button onclick="selectPlace('${place.id}')">View Details</button>
                 </div>
             `);
@@ -601,10 +649,16 @@ async function loadData(location) {
 // Get marker color based on place type
 function getMarkerColor(place) {
     switch (place.type) {
-        case 'facility':
+        case 'parent_facility':
             return '#2196F3'; // Blue
+        case 'toilet':
+            return '#4CAF50'; // Green
         case 'event':
             return '#FF9800'; // Orange
+        case 'park':
+            return '#8BC34A'; // Light Green
+        case 'playground':
+            return '#E91E63'; // Pink
         default:
             return '#9E9E9E'; // Gray
     }
@@ -660,10 +714,14 @@ function renderDirectory(places) {
             <p class="description">${place.description}</p>
             <div class="place-details">
                 <div class="amenities">
-                    ${place.amenities.map(amenity => `<span class="amenity">${amenity}</span>`).join('')}
+                    ${place.amenities && place.amenities.length > 0 
+                        ? place.amenities.map(amenity => `<span class="amenity">${amenity}</span>`).join('') 
+                        : ''}
                 </div>
                 <div class="tags">
-                    ${place.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    ${place.tags && place.tags.length > 0 
+                        ? place.tags.map(tag => `<span class="tag">${tag}</span>`).join('') 
+                        : ''}
                 </div>
             </div>
         `;
@@ -716,8 +774,8 @@ function selectPlace(id) {
     if (!place) return;
     
     // Center the map on the place
-    const lat = place.latitude || place.lat;
-    const lng = place.longitude || place.lng;
+    const lat = place.location ? place.location.lat : (place.latitude || place.lat);
+    const lng = place.location ? place.location.lng : (place.longitude || place.lng);
     map.setView([lat, lng], 16);
     
     // Find the marker for this place
