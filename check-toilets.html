@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Toilet Records</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js" type="module"></script>
+</head>
+<body>
+    <h1>Toilet Records Check</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { fetchPointsByType } from './supabase-client.js';
+
+        async function checkToilets() {
+            const resultsDiv = document.getElementById('results');
+            try {
+                resultsDiv.innerHTML = 'Checking for toilet records...';
+                const toilets = await fetchPointsByType('toilet');
+                
+                if (toilets.length === 0) {
+                    resultsDiv.innerHTML = '<p>No toilet records found in the database.</p>';
+                } else {
+                    let html = `<p>Found ${toilets.length} toilet records:</p><ul>`;
+                    toilets.forEach(toilet => {
+                        html += `<li>${toilet.title} (${toilet.latitude}, ${toilet.longitude})</li>`;
+                    });
+                    html += '</ul>';
+                    resultsDiv.innerHTML = html;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: red">Error checking toilet records: ${error.message}</p>`;
+                console.error('Error checking toilet records:', error);
+            }
+        }
+
+        // Run the check when the page loads
+        checkToilets();
+    </script>
+</body>
+</html> 
