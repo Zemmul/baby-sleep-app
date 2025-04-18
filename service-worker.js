@@ -15,6 +15,8 @@ const ASSETS_TO_CACHE = [
     '/sleep-sounds.html',
     '/baby-time.html',
     '/baby-time.js',
+    '/baby-days-out.html',
+    '/baby-days-out.js',
     '/assets/images/default-cover.svg',
     '/assets/images/icon-192x192.svg',
     '/assets/images/hero-baby.svg',
@@ -31,7 +33,16 @@ self.addEventListener('install', event => {
         caches.open(CACHE_NAME)
             .then(cache => {
                 console.log('Opened cache');
-                return cache.addAll(ASSETS_TO_CACHE);
+                // Use Promise.all to handle each cache add individually
+                return Promise.all(
+                    ASSETS_TO_CACHE.map(url => {
+                        return cache.add(url).catch(err => {
+                            console.warn(`Failed to cache ${url}:`, err);
+                            // Continue even if one file fails to cache
+                            return Promise.resolve();
+                        });
+                    })
+                );
             })
     );
     self.skipWaiting();
@@ -51,7 +62,8 @@ self.addEventListener('activate', event => {
             );
         })
     );
-    event.waitUntil(clients.claim());
+    // Take control of all clients as soon as the service worker activates
+    return self.clients.claim();
 });
 
 // Fetch event - serve from cache, fallback to network

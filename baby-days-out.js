@@ -82,7 +82,7 @@ function initMap() {
     }).addTo(map);
     
     // Add location control
-    L.control.locate({
+    const lc = L.control.locate({
         position: 'bottomright',
         strings: {
             title: "Show my location"
@@ -106,148 +106,153 @@ function initMap() {
 function setupEventListeners() {
     // Location input
     let searchTimeout;
-    locationInput.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.trim();
-        console.log('Search term:', searchTerm);
-        
-        // Clear previous timeout
-        if (searchTimeout) {
-            clearTimeout(searchTimeout);
-        }
-        
-        // Set new timeout to avoid too many API calls
-        searchTimeout = setTimeout(async () => {
-            if (searchTerm.length >= 2) {
-                try {
-                    console.log('Fetching suggestions for:', searchTerm);
-                    
-                    // For local development, use sample suggestions
-                    console.log('Using sample suggestions for local development');
-                    const sampleSuggestions = getSampleSuggestions(searchTerm);
-                    console.log('Sample suggestions:', sampleSuggestions);
-                    
-                    // Clear previous suggestions
-                    searchSuggestions.innerHTML = '';
-                    
-                    if (sampleSuggestions && sampleSuggestions.length > 0) {
-                        sampleSuggestions.forEach(suggestion => {
-                            const div = document.createElement('div');
-                            div.className = 'suggestion-item';
-                            
-                            // Format the display name and address
-                            const displayName = suggestion.displayName;
-                            const address = suggestion.address;
-                            
-                            console.log('Suggestion:', {
-                                displayName,
-                                address
-                            });
-                            
-                            // Make sure we have an address to display
-                            const mainText = address || displayName;
-                            const secondaryText = address ? displayName : '';
-                            
-                            div.innerHTML = `
-                                <h4>${mainText}</h4>
-                                ${secondaryText ? `<p>${secondaryText}</p>` : ''}
-                            `;
-                            
-                            div.addEventListener('click', () => {
-                                locationInput.value = mainText;
-                                searchSuggestions.classList.remove('active');
-                                
-                                // Update map view and load data
-                                const coords = suggestion.coords;
-                                
-                                currentLocation = coords;
-                                map.setView([coords.lat, coords.lng], 15);
-                                
-                                // Add a marker for the searched location
-                                addSearchMarker(coords.lat, coords.lng, mainText);
-                                
-                                loadData(coords);
-                            });
-                            
-                            searchSuggestions.appendChild(div);
-                        });
+    const locationInput = document.getElementById('location-input');
+    const searchSuggestions = document.getElementById('search-suggestions');
+    
+    if (locationInput) {
+        locationInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.trim();
+            console.log('Search term:', searchTerm);
+            
+            // Clear previous timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
+            // Set new timeout to avoid too many API calls
+            searchTimeout = setTimeout(async () => {
+                if (searchTerm.length >= 2) {
+                    try {
+                        console.log('Fetching suggestions for:', searchTerm);
                         
-                        searchSuggestions.classList.add('active');
-                    } else {
+                        // For local development, use sample suggestions
+                        console.log('Using sample suggestions for local development');
+                        const sampleSuggestions = getSampleSuggestions(searchTerm);
+                        console.log('Sample suggestions:', sampleSuggestions);
+                        
+                        // Clear previous suggestions
+                        searchSuggestions.innerHTML = '';
+                        
+                        if (sampleSuggestions && sampleSuggestions.length > 0) {
+                            sampleSuggestions.forEach(suggestion => {
+                                const div = document.createElement('div');
+                                div.className = 'suggestion-item';
+                                
+                                // Format the display name and address
+                                const displayName = suggestion.displayName;
+                                const address = suggestion.address;
+                                
+                                console.log('Suggestion:', {
+                                    displayName,
+                                    address
+                                });
+                                
+                                // Make sure we have an address to display
+                                const mainText = address || displayName;
+                                const secondaryText = address ? displayName : '';
+                                
+                                div.innerHTML = `
+                                    <h4>${mainText}</h4>
+                                    ${secondaryText ? `<p>${secondaryText}</p>` : ''}
+                                `;
+                                
+                                div.addEventListener('click', () => {
+                                    locationInput.value = mainText;
+                                    searchSuggestions.classList.remove('active');
+                                    
+                                    // Update map view and load data
+                                    const coords = suggestion.coords;
+                                    
+                                    currentLocation = coords;
+                                    map.setView([coords.lat, coords.lng], 15);
+                                    
+                                    // Add a marker for the searched location
+                                    addSearchMarker(coords.lat, coords.lng, mainText);
+                                    
+                                    loadData(coords);
+                                });
+                                
+                                searchSuggestions.appendChild(div);
+                            });
+                            
+                            searchSuggestions.classList.add('active');
+                        } else {
+                            searchSuggestions.classList.remove('active');
+                        }
+                        
+                        /* Commented out for local development
+                        // Use Nominatim to search for locations
+                        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&countrycodes=au&limit=10&addressdetails=1`;
+                        console.log('Fetching from URL:', url);
+                        
+                        const response = await fetch(url);
+                        const suggestions = await response.json();
+                        console.log('Received suggestions:', suggestions);
+                        
+                        // Clear previous suggestions
+                        searchSuggestions.innerHTML = '';
+                        
+                        if (suggestions && suggestions.length > 0) {
+                            suggestions.forEach(suggestion => {
+                                const div = document.createElement('div');
+                                div.className = 'suggestion-item';
+                                
+                                // Format the display name and address
+                                const displayName = formatDisplayName(suggestion);
+                                const address = formatAddress(suggestion.address);
+                                
+                                console.log('Suggestion:', {
+                                    displayName,
+                                    address,
+                                    rawAddress: suggestion.address
+                                });
+                                
+                                // Make sure we have an address to display
+                                const mainText = address || displayName;
+                                const secondaryText = address ? displayName : '';
+                                
+                                div.innerHTML = `
+                                    <h4>${mainText}</h4>
+                                    ${secondaryText ? `<p>${secondaryText}</p>` : ''}
+                                `;
+                                
+                                div.addEventListener('click', () => {
+                                    locationInput.value = mainText;
+                                    searchSuggestions.classList.remove('active');
+                                    
+                                    // Update map view and load data
+                                    const coords = {
+                                        lat: parseFloat(suggestion.lat),
+                                        lng: parseFloat(suggestion.lon)
+                                    };
+                                    
+                                    currentLocation = coords;
+                                    map.setView([coords.lat, coords.lng], 15);
+                                    
+                                    // Add a marker for the searched location
+                                    addSearchMarker(coords.lat, coords.lng, mainText);
+                                    
+                                    loadData(coords);
+                                });
+                                
+                                searchSuggestions.appendChild(div);
+                            });
+                            
+                            searchSuggestions.classList.add('active');
+                        } else {
+                            searchSuggestions.classList.remove('active');
+                        }
+                        */
+                    } catch (error) {
+                        console.error('Error fetching location suggestions:', error);
                         searchSuggestions.classList.remove('active');
                     }
-                    
-                    /* Commented out for local development
-                    // Use Nominatim to search for locations
-                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&countrycodes=au&limit=10&addressdetails=1`;
-                    console.log('Fetching from URL:', url);
-                    
-                    const response = await fetch(url);
-                    const suggestions = await response.json();
-                    console.log('Received suggestions:', suggestions);
-                    
-                    // Clear previous suggestions
-                    searchSuggestions.innerHTML = '';
-                    
-                    if (suggestions && suggestions.length > 0) {
-                        suggestions.forEach(suggestion => {
-                            const div = document.createElement('div');
-                            div.className = 'suggestion-item';
-                            
-                            // Format the display name and address
-                            const displayName = formatDisplayName(suggestion);
-                            const address = formatAddress(suggestion.address);
-                            
-                            console.log('Suggestion:', {
-                                displayName,
-                                address,
-                                rawAddress: suggestion.address
-                            });
-                            
-                            // Make sure we have an address to display
-                            const mainText = address || displayName;
-                            const secondaryText = address ? displayName : '';
-                            
-                            div.innerHTML = `
-                                <h4>${mainText}</h4>
-                                ${secondaryText ? `<p>${secondaryText}</p>` : ''}
-                            `;
-                            
-                            div.addEventListener('click', () => {
-                                locationInput.value = mainText;
-                                searchSuggestions.classList.remove('active');
-                                
-                                // Update map view and load data
-                                const coords = {
-                                    lat: parseFloat(suggestion.lat),
-                                    lng: parseFloat(suggestion.lon)
-                                };
-                                
-                                currentLocation = coords;
-                                map.setView([coords.lat, coords.lng], 15);
-                                
-                                // Add a marker for the searched location
-                                addSearchMarker(coords.lat, coords.lng, mainText);
-                                
-                                loadData(coords);
-                            });
-                            
-                            searchSuggestions.appendChild(div);
-                        });
-                        
-                        searchSuggestions.classList.add('active');
-                    } else {
-                        searchSuggestions.classList.remove('active');
-                    }
-                    */
-                } catch (error) {
-                    console.error('Error fetching location suggestions:', error);
+                } else {
                     searchSuggestions.classList.remove('active');
                 }
-            } else {
-                searchSuggestions.classList.remove('active');
-            }
-        }, 300); // 300ms delay
-    });
+            }, 300); // 300ms delay
+        });
+    }
     
     // Close suggestions when clicking outside
     document.addEventListener('click', (e) => {
@@ -281,18 +286,32 @@ function setupEventListeners() {
     });
     
     // Filter checkboxes
-    document.getElementById('filter-facilities').addEventListener('change', updateActiveFilters);
-    document.getElementById('filter-events').addEventListener('change', updateActiveFilters);
-    document.getElementById('filter-toilets').addEventListener('change', updateActiveFilters);
+    const filterFacilities = document.getElementById('filter-facilities');
+    const filterEvents = document.getElementById('filter-events');
+    const filterToilets = document.getElementById('filter-toilets');
+    const resetFilters = document.getElementById('reset-filters');
     
-    // Reset filters
-    document.getElementById('reset-filters').addEventListener('click', (e) => {
-        e.preventDefault();
-        document.getElementById('filter-facilities').checked = true;
-        document.getElementById('filter-events').checked = true;
-        document.getElementById('filter-toilets').checked = true;
-        updateActiveFilters();
-    });
+    if (filterFacilities) {
+        filterFacilities.addEventListener('change', updateActiveFilters);
+    }
+    
+    if (filterEvents) {
+        filterEvents.addEventListener('change', updateActiveFilters);
+    }
+    
+    if (filterToilets) {
+        filterToilets.addEventListener('change', updateActiveFilters);
+    }
+    
+    if (resetFilters) {
+        resetFilters.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (filterFacilities) filterFacilities.checked = true;
+            if (filterEvents) filterEvents.checked = true;
+            if (filterToilets) filterToilets.checked = true;
+            updateActiveFilters();
+        });
+    }
     
     // Sidebar toggle
     sidebarToggle.addEventListener('click', () => {
@@ -303,24 +322,29 @@ function setupEventListeners() {
     const tabs = document.querySelectorAll('.sidebar-tab');
     const tabContents = document.querySelectorAll('.sidebar-tab-content');
 
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            // Remove active class from all tabs
-            tabs.forEach(t => t.classList.remove('active'));
-            // Add active class to clicked tab
-            tab.classList.add('active');
+    if (tabs.length > 0 && tabContents.length > 0) {
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs
+                tabs.forEach(t => t.classList.remove('active'));
+                // Add active class to clicked tab
+                tab.classList.add('active');
 
-            // Hide all tab contents
-            tabContents.forEach(content => content.style.display = 'none');
-            // Show the corresponding tab content
-            const tabId = tab.getAttribute('data-tab');
-            document.getElementById(tabId + '-tab').style.display = 'block';
+                // Hide all tab contents
+                tabContents.forEach(content => content.style.display = 'none');
+                // Show the corresponding tab content
+                const tabId = tab.getAttribute('data-tab');
+                const tabContent = document.getElementById(tabId + '-tab');
+                if (tabContent) {
+                    tabContent.style.display = 'block';
+                }
+            });
         });
-    });
 
-    // Set initial active tab
-    tabs[0].classList.add('active');
-    tabContents[0].style.display = 'block';
+        // Set initial active tab
+        tabs[0].classList.add('active');
+        tabContents[0].style.display = 'block';
+    }
 }
 
 // Update active filters based on checkbox states
@@ -425,28 +449,42 @@ async function loadData(location = MELBOURNE_COORDS) {
         console.log('Supabase data retrieved:', supabaseData);
         
         // Transform Supabase data to match our expected format
-        const transformedData = supabaseData.map(point => ({
-            id: point.id,
-            name: point.title,
-            description: point.description,
-            type: point.type || 'parent_facility', // Default to parent_facility if type is not set
-            location: {
-                lat: parseFloat(point.latitude),
-                lng: parseFloat(point.longitude)
-            },
-            address: point.address,
-            amenities: point.facilities || [],
-            cost: point.cost,
-            ageGroup: point.age_group,
-            contactInfo: point.contact_info,
-            websiteUrl: point.website_url,
-            startTime: point.start_time,
-            endTime: point.end_time,
-            submissionStatus: point.submission_status,
-            submittedBy: point.submitted_by,
-            createdAt: point.created_at,
-            updatedAt: point.updated_at
-        }));
+        const transformedData = supabaseData.map(point => {
+            // Ensure latitude and longitude are valid numbers
+            const lat = parseFloat(point.latitude);
+            const lng = parseFloat(point.longitude);
+            
+            // Skip points with invalid coordinates
+            if (isNaN(lat) || isNaN(lng)) {
+                console.warn('Skipping point with invalid coordinates:', point);
+                return null;
+            }
+            
+            return {
+                id: point.id,
+                name: point.title || 'Untitled',
+                description: point.description || '',
+                type: point.type || 'parent_facility', // Default to parent_facility if type is not set
+                location: {
+                    lat: lat,
+                    lng: lng
+                },
+                address: point.address || '',
+                amenities: point.facilities || [],
+                cost: point.cost || '',
+                ageGroup: point.age_group || '',
+                contactInfo: point.contact_info || '',
+                websiteUrl: point.website_url || '',
+                startTime: point.start_time || '',
+                endTime: point.end_time || '',
+                submissionStatus: point.submission_status || '',
+                submittedBy: point.submitted_by || '',
+                createdAt: point.created_at || '',
+                updatedAt: point.updated_at || ''
+            };
+        }).filter(Boolean); // Remove null entries
+        
+        console.log('Transformed Supabase data:', transformedData);
         
         // Get sample data as fallback
         const sampleData = getSampleData(location);
@@ -493,7 +531,6 @@ async function loadData(location = MELBOURNE_COORDS) {
                 </div>
             `);
             
-            // Store marker reference
             markers.push(marker);
         });
         
@@ -513,6 +550,10 @@ async function loadData(location = MELBOURNE_COORDS) {
 
 // Get marker color based on place type
 function getMarkerColor(place) {
+    if (!place || !place.type) {
+        return '#9E9E9E'; // Default gray
+    }
+    
     switch (place.type) {
         case 'parent_facility':
             return '#2196F3'; // Blue
