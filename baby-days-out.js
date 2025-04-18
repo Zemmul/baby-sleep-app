@@ -498,11 +498,15 @@ async function loadData(location = MELBOURNE_COORDS) {
         
         console.log('Transformed Supabase data:', transformedData);
         
-        // Get sample data as fallback
-        const sampleData = getSampleData(location);
-        
-        // Combine Supabase data with sample data
-        places = [...transformedData, ...sampleData];
+        // Only use sample data if no Supabase data is found
+        if (transformedData.length === 0) {
+            console.log('No Supabase data found, using sample data as fallback');
+            const sampleData = getSampleData(location);
+            places = sampleData;
+        } else {
+            console.log('Using Supabase data');
+            places = transformedData;
+        }
         
         console.log(`Total places: ${places.length}`);
         
@@ -511,14 +515,17 @@ async function loadData(location = MELBOURNE_COORDS) {
         
         // If there are active filters, apply them
         if (activeFilters.length > 0) {
+            console.log('Active filters:', activeFilters);
             filteredPlaces = places.filter(place => {
-                return activeFilters.includes(place.type);
+                const matches = activeFilters.includes(place.type);
+                console.log(`Place ${place.name} (${place.type}) matches filter: ${matches}`);
+                return matches;
             });
         }
         
         console.log(`Filtered places: ${filteredPlaces.length}`);
         
-        // Add markers to the map for filtered places
+        // Add markers for filtered places
         filteredPlaces.forEach(place => {
             const markerColor = getMarkerColor(place);
             const lat = place.location.lat;
@@ -546,16 +553,15 @@ async function loadData(location = MELBOURNE_COORDS) {
             markers.push(marker);
         });
         
-        // Render the directory with filtered places
+        // Update the directory
         renderDirectory(filteredPlaces);
         
         // Update the results count
         updateResultsCount(filteredPlaces.length);
-        
     } catch (error) {
         console.error('Error loading data:', error);
         if (directoryContainer) {
-            directoryContainer.innerHTML = '<div class="no-results">Error loading data. Please try again.</div>';
+            directoryContainer.innerHTML = '<div class="error">Error loading data. Please try again.</div>';
         }
     }
 }
@@ -626,7 +632,7 @@ function renderDirectory(places) {
                     `).join('')}
                 </div>
             ` : ''}
-            <button class="view-details" onclick="selectPlace(${place.lat}, ${place.lng})">View on Map</button>
+            <button class="view-details" onclick="selectPlace('${place.id}')">View on Map</button>
         `;
         
         placeCard.innerHTML = content;
