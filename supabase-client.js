@@ -317,7 +317,6 @@ export async function addTestPoint() {
       start_time: new Date().toISOString().split('T')[0] + 'T09:00:00+10:00',
       end_time: new Date().toISOString().split('T')[0] + 'T17:00:00+10:00',
       submission_status: 'approved',
-      submitted_by: 'test_user',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
