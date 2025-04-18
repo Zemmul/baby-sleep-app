@@ -455,10 +455,14 @@ async function loadData(location = MELBOURNE_COORDS) {
             
             console.log('Fetching points in bounds:', { minLat, maxLat, minLng, maxLng });
             supabaseData = await fetchPointsInBounds(minLat, maxLat, minLng, maxLng);
+            console.log('Supabase data length:', supabaseData.length);
+            console.log('Supabase data sample:', supabaseData.slice(0, 2));
         } else {
             // If no location, fetch all points
             console.log('Fetching all points');
             supabaseData = await fetchAllPoints();
+            console.log('Supabase data length:', supabaseData.length);
+            console.log('Supabase data sample:', supabaseData.slice(0, 2));
         }
         
         console.log('Supabase data retrieved:', supabaseData);
@@ -500,6 +504,7 @@ async function loadData(location = MELBOURNE_COORDS) {
         }).filter(Boolean); // Remove null entries
         
         console.log('Transformed Supabase data:', transformedData);
+        console.log('Transformed data length:', transformedData.length);
         
         // Only use sample data if no Supabase data is found
         if (transformedData.length === 0) {
