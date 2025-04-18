@@ -64,16 +64,21 @@ export async function fetchPointsInBounds(minLat, maxLat, minLng, maxLng) {
 // Function to add a new point
 export async function addPoint(pointData) {
   try {
+    // Ensure we're not sending submitted_by if it's not a valid UUID
+    if (pointData.submitted_by === 'user_id') {
+      delete pointData.submitted_by;
+    }
+    
     const { data, error } = await supabase
       .from('points')
       .insert([pointData])
       .select();
     
     if (error) throw error;
-    return data[0];
+    return { data: data[0], error: null };
   } catch (error) {
     console.error('Error adding point:', error);
-    throw error;
+    return { data: null, error };
   }
 }
 
