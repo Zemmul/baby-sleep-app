@@ -250,7 +250,22 @@
                 const { data, error } = await addPoint(pointData);
                 
                 if (error) {
-                    throw new Error(error.message);
+                    console.error('Error submitting point:', error);
+                    
+                    // Provide more specific error messages based on the error code
+                    let errorText = 'An error occurred while submitting the point.';
+                    
+                    if (error.code === '42501') {
+                        errorText = 'Permission denied. Please try again later or contact support.';
+                    } else if (error.code === '23505') {
+                        errorText = 'A point with this information already exists.';
+                    } else if (error.message) {
+                        errorText = error.message;
+                    }
+                    
+                    errorMessage.textContent = errorText;
+                    errorMessage.style.display = 'block';
+                    throw new Error(errorText);
                 }
                 
                 // Show success message

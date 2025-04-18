@@ -65,7 +65,7 @@ export async function fetchPointsInBounds(minLat, maxLat, minLng, maxLng) {
 export async function addPoint(pointData) {
   try {
     // Ensure we're not sending submitted_by if it's not a valid UUID
-    if (pointData.submitted_by === 'user_id') {
+    if (pointData.submitted_by === 'user_id' || !pointData.submitted_by) {
       delete pointData.submitted_by;
     }
     
@@ -74,7 +74,11 @@ export async function addPoint(pointData) {
       .insert([pointData])
       .select();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error adding point:', error);
+      return { data: null, error };
+    }
+    
     return { data: data[0], error: null };
   } catch (error) {
     console.error('Error adding point:', error);
