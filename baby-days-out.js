@@ -448,6 +448,14 @@ function updateMapMarkers() {
                 <h3>${place.name}</h3>
                 <p>${place.description}</p>
                 ${place.amenities && place.amenities.length > 0 ? `<p><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
+                ${place.cost ? `<p><strong>Cost:</strong> ${place.cost}</p>` : ''}
+                ${place.tags && place.tags.length > 0 ? `
+                    <div class="tags">
+                        ${place.tags.map(tag => `
+                            <span class="tag">${tag}</span>
+                        `).join('')}
+                    </div>
+                ` : ''}
                 <button onclick="selectPlace('${place.id}')">View Details</button>
             </div>
         `);
@@ -524,6 +532,16 @@ async function loadData(location = MELBOURNE_COORDS) {
                 return null;
             }
             
+            // Format cost based on its type
+            let costDisplay = '';
+            if (point.cost !== undefined && point.cost !== null) {
+                if (typeof point.cost === 'number') {
+                    costDisplay = point.cost === 0 ? 'Free' : `$${point.cost.toFixed(2)}`;
+                } else {
+                    costDisplay = point.cost;
+                }
+            }
+            
             return {
                 id: point.id,
                 name: point.title || 'Untitled',
@@ -535,7 +553,7 @@ async function loadData(location = MELBOURNE_COORDS) {
                 },
                 address: point.address || '',
                 amenities: point.facilities || [],
-                cost: point.cost || '',
+                cost: costDisplay,
                 ageGroup: point.age_group || '',
                 contactInfo: point.contact_info || '',
                 websiteUrl: point.website_url || '',
@@ -598,7 +616,15 @@ async function loadData(location = MELBOURNE_COORDS) {
                 <div class="marker-popup">
                     <h3>${place.name}</h3>
                     <p>${place.description}</p>
-                    ${place.amenities && place.amenities.length > 0 ? `<p><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
+                    ${place.cost ? `<p class="cost"><strong>Cost:</strong> ${place.cost}</p>` : ''}
+                    ${place.amenities && place.amenities.length > 0 ? `<p class="amenities"><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
+                    ${place.tags && place.tags.length > 0 ? `
+                        <div class="tags">
+                            ${place.tags.map(tag => `
+                                <span class="tag">${tag}</span>
+                            `).join('')}
+                        </div>
+                    ` : ''}
                     <button onclick="selectPlace('${place.id}')">View Details</button>
                 </div>
             `);
@@ -671,13 +697,8 @@ function renderDirectory(places) {
                 ${place.distance ? `<span class="distance">${place.distance.toFixed(1)}km</span>` : ''}
             </div>
             <p class="description">${place.description || ''}</p>
-            ${place.amenities && place.amenities.length > 0 ? `
-                <div class="amenities">
-                    ${place.amenities.map(amenity => `
-                        <span class="amenity">${amenity}</span>
-                    `).join('')}
-                </div>
-            ` : ''}
+            ${place.cost ? `<p class="cost"><strong>Cost:</strong> ${place.cost}</p>` : ''}
+            ${place.amenities && place.amenities.length > 0 ? `<p class="amenities"><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
             ${place.tags && place.tags.length > 0 ? `
                 <div class="tags">
                     ${place.tags.map(tag => `

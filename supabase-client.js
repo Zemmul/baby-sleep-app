@@ -310,7 +310,7 @@ export async function addTestPoint() {
       longitude: 144.9631,
       address: 'Melbourne CBD',
       facilities: ['Baby Change', 'Nursing Room'],
-      cost: 'Free',
+      cost: 0,
       age_group: 'All ages',
       contact_info: 'N/A',
       website_url: 'https://example.com',
