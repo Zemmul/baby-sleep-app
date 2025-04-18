@@ -104,6 +104,9 @@ function initMap() {
     if (filterEvents) filterEvents.checked = true;
     if (filterToilets) filterToilets.checked = true;
     
+    // Update active filters based on checkbox states
+    updateActiveFilters();
+    
     // Load initial data
     loadData();
     
@@ -364,15 +367,15 @@ function updateActiveFilters() {
     activeFilters = [];
     
     if (document.getElementById('filter-facilities').checked) {
-        activeFilters.push('parent_facility');
+        activeFilters.push('facilities');
     }
     
     if (document.getElementById('filter-events').checked) {
-        activeFilters.push('event');
+        activeFilters.push('events');
     }
     
     if (document.getElementById('filter-toilets').checked) {
-        activeFilters.push('toilet');
+        activeFilters.push('toilets');
     }
     
     // Update map markers based on active filters
