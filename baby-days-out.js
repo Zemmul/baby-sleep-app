@@ -14,17 +14,6 @@ const MELBOURNE_COORDS = {
     lng: 144.9631
 };
 
-// DOM elements
-const mapElement = document.getElementById('map');
-const locationInput = document.getElementById('location-input');
-const searchSuggestions = document.getElementById('search-suggestions');
-const filterButtons = document.querySelectorAll('.filter-button');
-const filterFacilitiesCheckbox = document.getElementById('filter-facilities');
-const filterToiletsCheckbox = document.getElementById('filter-toilets');
-const filterEventsCheckbox = document.getElementById('filter-events');
-const resetFiltersLink = document.getElementById('reset-filters');
-const sidebarToggle = document.getElementById('sidebar-toggle');
-
 // Import Supabase client functions
 import { fetchAllPoints, fetchPointsByType, fetchPointsInBounds } from './supabase-client.js';
 
@@ -55,18 +44,10 @@ function isWeekend(dateString) {
     return day === 0 || day === 6; // Saturday or Sunday
 }
 
-// Wait for the ToiletMapAPI to be initialized
-document.addEventListener('DOMContentLoaded', async () => {
+// Wait for the DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM loaded, initializing map...');
-    
-    // Wait a moment for the ToiletMapAPI to be initialized
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Initialize the map
     initMap();
-    
-    // Set up event listeners
-    setupEventListeners();
 });
 
 // Initialize the map
@@ -100,102 +81,14 @@ function initMap() {
         position: 'bottomright'
     }).addTo(map);
     
-    // Add location finder button last
-    const locationButton = L.control({position: 'bottomright'});
-    locationButton.onAdd = function() {
-        const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-        div.style.border = 'none';
-        div.style.boxShadow = '0 2px 6px var(--shadow-color) !important';
-        div.innerHTML = `
-            <a href="#" title="Find my location" style="width: 30px; height: 30px; line-height: 35px; text-align: center; display: block; background-color: white; border-radius: 4px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8572" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-            </a>
-        `;
-        
-        div.onclick = function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    position => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        currentLocation = { lat, lng };
-                        
-                        // Center the map on the user's location
-                        map.setView([lat, lng], 15);
-                        
-                        // Add a marker for the user's location
-                        L.marker([lat, lng], {
-                            icon: L.divIcon({
-                                className: 'user-location',
-                                html: '<div style="background-color: #4285F4; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #4285F4;"></div>',
-                                iconSize: [16, 16],
-                                iconAnchor: [8, 8]
-                            })
-                        }).addTo(map);
-                        
-                        // Load data for the user's location
-                        loadData(currentLocation);
-                    },
-                    error => {
-                        console.error('Error getting user location:', error);
-                        // Load data for Melbourne as fallback
-                        loadData(MELBOURNE_COORDS);
-                    }
-                );
-            } else {
-                alert('Geolocation is not supported by your browser.');
-                // Load data for Melbourne as fallback
-                loadData(MELBOURNE_COORDS);
-            }
-        };
-        
-        return div;
-    };
-    locationButton.addTo(map);
+    // Initialize markers array
+    markers = [];
     
-    // Try to get the user's location
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            position => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                currentLocation = { lat, lng };
-                
-                // Center the map on the user's location
-                map.setView([lat, lng], 14);
-                
-                // Add a marker for the user's location
-                L.marker([lat, lng], {
-                    icon: L.divIcon({
-                        className: 'user-location',
-                        html: '<div style="background-color: #4285F4; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #4285F4;"></div>',
-                        iconSize: [16, 16],
-                        iconAnchor: [8, 8]
-                    })
-                }).addTo(map);
-                
-                // Load data for the user's location
-                loadData(currentLocation);
-            },
-            error => {
-                console.error('Error getting user location:', error);
-                // Load data for Melbourne as fallback
-                loadData(MELBOURNE_COORDS);
-            }
-        );
-    } else {
-        console.log('Geolocation is not supported by this browser.');
-        // Load data for Melbourne as fallback
-        loadData(MELBOURNE_COORDS);
-    }
+    // Load initial data
+    loadData();
     
-    console.log('Map initialization complete');
+    // Setup event listeners
+    setupEventListeners();
 }
 
 // Set up event listeners
@@ -517,15 +410,12 @@ function updateMapMarkers() {
 }
 
 // Load data for a location
-async function loadData(location) {
+async function loadData(location = MELBOURNE_COORDS) {
     console.log('Loading data for location:', location);
     
     // Show loading state
     if (directoryContainer) {
         directoryContainer.innerHTML = '<div class="loading">Finding nearby places...</div>';
-    } else {
-        console.error('Directory container not found in loadData!');
-        return;
     }
     
     // Clear existing markers
@@ -534,7 +424,6 @@ async function loadData(location) {
     
     try {
         // Fetch data from Supabase
-        console.log('Fetching data from Supabase...');
         let supabaseData = [];
         
         // If we have a location, fetch points within a bounding box
@@ -583,9 +472,7 @@ async function loadData(location) {
         }));
         
         // Get sample data as fallback
-        console.log('Getting sample data as fallback...');
         const sampleData = getSampleData(location);
-        console.log('Sample data retrieved:', sampleData);
         
         // Combine Supabase data with sample data
         places = [...transformedData, ...sampleData];
@@ -638,6 +525,7 @@ async function loadData(location) {
         
         // Update the results count
         updateResultsCount(filteredPlaces.length);
+        
     } catch (error) {
         console.error('Error loading data:', error);
         if (directoryContainer) {
