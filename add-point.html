@@ -273,6 +273,13 @@
         // Handle get location button click
         getLocationButton.addEventListener('click', () => {
             if (navigator.geolocation) {
+                // Show loading state
+                const loadingMessage = document.getElementById('loadingMessage');
+                const errorMessage = document.getElementById('errorMessage');
+                
+                loadingMessage.style.display = 'block';
+                errorMessage.style.display = 'none';
+                
                 navigator.geolocation.getCurrentPosition(
                     position => {
                         // Set latitude and longitude fields
@@ -286,22 +293,31 @@
                                 if (data && data.display_name) {
                                     document.getElementById('address').value = data.display_name;
                                 }
+                                loadingMessage.style.display = 'none';
                             })
                             .catch(error => {
                                 console.error('Error getting address:', error);
+                                loadingMessage.style.display = 'none';
+                                errorMessage.textContent = 'Error getting address. Please enter it manually.';
+                                errorMessage.style.display = 'block';
                             });
                     },
                     error => {
                         console.error('Error getting location:', error);
-                        messageElement.textContent = `Error getting location: ${error.message}`;
-                        messageElement.className = 'message error';
-                        messageElement.style.display = 'block';
+                        loadingMessage.style.display = 'none';
+                        errorMessage.textContent = `Error getting location: ${error.message}. Please enter coordinates manually.`;
+                        errorMessage.style.display = 'block';
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
                     }
                 );
             } else {
-                messageElement.textContent = 'Geolocation is not supported by your browser.';
-                messageElement.className = 'message error';
-                messageElement.style.display = 'block';
+                const errorMessage = document.getElementById('errorMessage');
+                errorMessage.textContent = 'Geolocation is not supported by your browser.';
+                errorMessage.style.display = 'block';
             }
         });
     </script>
