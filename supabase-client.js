@@ -11,12 +11,18 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Function to fetch all points
 export async function fetchAllPoints() {
   try {
+    console.log('Fetching all points from Supabase...');
     const { data, error } = await supabase
       .from('points')
       .select('*')
       .order('created_at', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error in fetchAllPoints:', error);
+      throw error;
+    }
+    
+    console.log(`Fetched ${data ? data.length : 0} points from Supabase`);
     return data;
   } catch (error) {
     console.error('Error fetching points:', error);
@@ -27,13 +33,19 @@ export async function fetchAllPoints() {
 // Function to fetch points by type
 export async function fetchPointsByType(type) {
   try {
+    console.log(`Fetching points of type ${type} from Supabase...`);
     const { data, error } = await supabase
       .from('points')
       .select('*')
       .eq('type', type)
       .order('created_at', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      console.error(`Error in fetchPointsByType(${type}):`, error);
+      throw error;
+    }
+    
+    console.log(`Fetched ${data ? data.length : 0} points of type ${type} from Supabase`);
     return data;
   } catch (error) {
     console.error(`Error fetching points of type ${type}:`, error);
@@ -44,16 +56,54 @@ export async function fetchPointsByType(type) {
 // Function to fetch points within a bounding box
 export async function fetchPointsInBounds(minLat, maxLat, minLng, maxLng) {
   try {
+    console.log(`Fetching points in bounds: lat(${minLat} to ${maxLat}), lng(${minLng} to ${maxLng})`);
+    
+    // First, check the table structure to determine the correct column names
+    const { data: sampleData, error: sampleError } = await supabase
+      .from('points')
+      .select('*')
+      .limit(1);
+    
+    if (sampleError) {
+      console.error('Error fetching sample data:', sampleError);
+      throw sampleError;
+    }
+    
+    if (!sampleData || sampleData.length === 0) {
+      console.log('No data in the points table');
+      return [];
+    }
+    
+    // Determine the correct column names
+    const sample = sampleData[0];
+    const latColumn = sample.hasOwnProperty('latitude') ? 'latitude' : 
+                      sample.hasOwnProperty('lat') ? 'lat' : null;
+    const lngColumn = sample.hasOwnProperty('longitude') ? 'longitude' : 
+                      sample.hasOwnProperty('lng') ? 'lng' : null;
+    
+    console.log(`Using column names: ${latColumn} for latitude, ${lngColumn} for longitude`);
+    
+    if (!latColumn || !lngColumn) {
+      console.error('Could not determine latitude and longitude column names');
+      return [];
+    }
+    
+    // Now fetch the data with the correct column names
     const { data, error } = await supabase
       .from('points')
       .select('*')
-      .gte('latitude', minLat)
-      .lte('latitude', maxLat)
-      .gte('longitude', minLng)
-      .lte('longitude', maxLng)
+      .gte(latColumn, minLat)
+      .lte(latColumn, maxLat)
+      .gte(lngColumn, minLng)
+      .lte(lngColumn, maxLng)
       .order('created_at', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error in fetchPointsInBounds:', error);
+      throw error;
+    }
+    
+    console.log(`Fetched ${data ? data.length : 0} points in bounds from Supabase`);
     return data;
   } catch (error) {
     console.error('Error fetching points in bounds:', error);
@@ -217,6 +267,78 @@ async function deleteImages(imageUrls) {
             console.error(`Error deleting image: ${error.message}`);
         }
     }
+}
+
+// Function to check the table structure
+export async function checkTableStructure() {
+  try {
+    console.log('Checking points table structure...');
+    const { data, error } = await supabase
+      .from('points')
+      .select('*')
+      .limit(1);
+    
+    if (error) {
+      console.error('Error checking table structure:', error);
+      return null;
+    }
+    
+    if (data && data.length > 0) {
+      console.log('Table structure:', Object.keys(data[0]));
+      return Object.keys(data[0]);
+    } else {
+      console.log('No data in the points table');
+      return [];
+    }
+  } catch (error) {
+    console.error('Error checking table structure:', error);
+    return null;
+  }
+}
+
+// Function to add a test point
+export async function addTestPoint() {
+  try {
+    console.log('Adding test point to Supabase...');
+    
+    // Create a test point
+    const testPoint = {
+      title: 'Test Point',
+      description: 'This is a test point added for debugging',
+      type: 'parent_facility',
+      latitude: -37.8136,
+      longitude: 144.9631,
+      address: 'Melbourne CBD',
+      facilities: ['Baby Change', 'Nursing Room'],
+      cost: 'Free',
+      age_group: 'All ages',
+      contact_info: 'N/A',
+      website_url: 'https://example.com',
+      start_time: '09:00',
+      end_time: '17:00',
+      submission_status: 'approved',
+      submitted_by: 'test_user',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Add the test point to the database
+    const { data, error } = await supabase
+      .from('points')
+      .insert([testPoint])
+      .select();
+    
+    if (error) {
+      console.error('Error adding test point:', error);
+      return { success: false, error };
+    }
+    
+    console.log('Test point added successfully:', data);
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error adding test point:', error);
+    return { success: false, error };
+  }
 }
 
 // Export the supabase client for direct use if needed

@@ -15,7 +15,7 @@ const MELBOURNE_COORDS = {
 };
 
 // Import Supabase client functions
-import { fetchAllPoints, fetchPointsByType, fetchPointsInBounds } from './supabase-client.js';
+import { fetchAllPoints, fetchPointsByType, fetchPointsInBounds, checkTableStructure, addTestPoint } from './supabase-client.js';
 
 // Date helper functions
 function isToday(dateString) {
@@ -57,6 +57,40 @@ function initMap() {
     // Get the directory container
     directoryContainer = document.getElementById('directory');
     console.log('Directory container:', directoryContainer);
+    
+    // Check the table structure
+    checkTableStructure().then(columns => {
+        console.log('Table columns:', columns);
+    });
+    
+    // Add a debug button to add a test point
+    const debugButton = document.createElement('button');
+    debugButton.textContent = 'Add Test Point';
+    debugButton.style.position = 'absolute';
+    debugButton.style.top = '10px';
+    debugButton.style.right = '10px';
+    debugButton.style.zIndex = '1000';
+    debugButton.style.padding = '5px 10px';
+    debugButton.style.backgroundColor = '#ff5722';
+    debugButton.style.color = 'white';
+    debugButton.style.border = 'none';
+    debugButton.style.borderRadius = '4px';
+    debugButton.style.cursor = 'pointer';
+    
+    debugButton.addEventListener('click', async () => {
+        console.log('Adding test point...');
+        const result = await addTestPoint();
+        if (result.success) {
+            console.log('Test point added successfully');
+            alert('Test point added successfully! Refreshing the page...');
+            location.reload();
+        } else {
+            console.error('Failed to add test point:', result.error);
+            alert('Failed to add test point: ' + JSON.stringify(result.error));
+        }
+    });
+    
+    document.body.appendChild(debugButton);
     
     // Initialize the map centered on Melbourne
     map = L.map('map', {
@@ -469,9 +503,20 @@ async function loadData(location = MELBOURNE_COORDS) {
         
         // Transform Supabase data to match our expected format
         const transformedData = supabaseData.map(point => {
-            // Ensure latitude and longitude are valid numbers
-            const lat = parseFloat(point.latitude);
-            const lng = parseFloat(point.longitude);
+            // Determine the correct latitude and longitude values
+            let lat, lng;
+            
+            // Check for different possible column names
+            if (point.hasOwnProperty('latitude') && point.hasOwnProperty('longitude')) {
+                lat = parseFloat(point.latitude);
+                lng = parseFloat(point.longitude);
+            } else if (point.hasOwnProperty('lat') && point.hasOwnProperty('lng')) {
+                lat = parseFloat(point.lat);
+                lng = parseFloat(point.lng);
+            } else {
+                console.warn('Point missing latitude/longitude:', point);
+                return null;
+            }
             
             // Skip points with invalid coordinates
             if (isNaN(lat) || isNaN(lng)) {
