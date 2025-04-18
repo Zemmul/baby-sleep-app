@@ -4,7 +4,7 @@ let markers = [];
 let places = [];
 let currentLocation = null;
 let currentFilter = 'all';
-let activeFilters = ['facilities', 'toilets', 'events']; // Track active filters
+let activeFilters = ['parent_facility', 'toilet', 'event']; // Track active filters
 let directoryContainer;
 let searchMarker = null; // Add a variable to track the search marker
 
@@ -367,15 +367,15 @@ function updateActiveFilters() {
     activeFilters = [];
     
     if (document.getElementById('filter-facilities').checked) {
-        activeFilters.push('facilities');
+        activeFilters.push('parent_facility');
     }
     
     if (document.getElementById('filter-events').checked) {
-        activeFilters.push('events');
+        activeFilters.push('event');
     }
     
     if (document.getElementById('filter-toilets').checked) {
-        activeFilters.push('toilets');
+        activeFilters.push('toilet');
     }
     
     // Update map markers based on active filters
@@ -736,7 +736,7 @@ function getSampleFacilities(location) {
                 sampleFacilities.push({
                     id,
                     name: `${type} ${sampleFacilities.length + 1}`,
-                    type: 'facility',
+                    type: 'parent_facility',
                     description: `A ${type.toLowerCase()} for parents with babies and young children${hasNursing ? ' with a private nursing area' : ''}${hasMicrowave ? ' and microwave for warming bottles' : ''}.`,
                     location: { lat, lng },
                     amenities,
@@ -923,7 +923,7 @@ function getAdditionalDummyData(location) {
         {
             name: "Melbourne Zoo",
             description: "Family-friendly zoo with baby change facilities and stroller rentals.",
-            type: "facility",
+            type: "parent_facility",
             amenities: ["Baby Change", "Stroller Rental", "Cafe", "Playground"],
             tags: ["Family Friendly", "Educational", "Outdoor"],
             rating: "4.8"
@@ -931,7 +931,7 @@ function getAdditionalDummyData(location) {
         {
             name: "Scienceworks",
             description: "Interactive science museum with dedicated baby area and nursing rooms.",
-            type: "facility",
+            type: "parent_facility",
             amenities: ["Nursing Room", "Baby Area", "Cafe", "Wheelchair Accessible"],
             tags: ["Educational", "Indoor", "Family Friendly"],
             rating: "4.6"
@@ -939,7 +939,7 @@ function getAdditionalDummyData(location) {
         {
             name: "Royal Botanic Gardens",
             description: "Beautiful gardens with baby change facilities and picnic areas.",
-            type: "facility",
+            type: "parent_facility",
             amenities: ["Baby Change", "Picnic Area", "Cafe", "Wheelchair Accessible"],
             tags: ["Outdoor", "Nature", "Family Friendly"],
             rating: "4.7"
