@@ -81,6 +81,17 @@ function initMap() {
         position: 'bottomright'
     }).addTo(map);
     
+    // Add location control
+    L.control.locate({
+        position: 'bottomright',
+        strings: {
+            title: "Show my location"
+        },
+        locateOptions: {
+            enableHighAccuracy: true
+        }
+    }).addTo(map);
+    
     // Initialize markers array
     markers = [];
     
@@ -269,44 +280,18 @@ function setupEventListeners() {
         });
     });
     
-    // Filter checkboxes change
-    [filterFacilitiesCheckbox, filterEventsCheckbox].forEach(checkbox => {
-        checkbox.addEventListener('change', () => {
-            // Update active filters array
-            updateActiveFilters();
-            
-            // Update the directory view
-            renderDirectory();
-            
-            // Log the current state of filters
-            console.log('Filter checkboxes changed. Active filters:', activeFilters);
-        });
-    });
+    // Filter checkboxes
+    document.getElementById('filter-facilities').addEventListener('change', updateActiveFilters);
+    document.getElementById('filter-events').addEventListener('change', updateActiveFilters);
+    document.getElementById('filter-toilets').addEventListener('change', updateActiveFilters);
     
-    // Reset filters link
-    resetFiltersLink.addEventListener('click', (e) => {
+    // Reset filters
+    document.getElementById('reset-filters').addEventListener('click', (e) => {
         e.preventDefault();
-        
-        // Reset all checkboxes to checked
-        filterFacilitiesCheckbox.checked = true;
-        filterEventsCheckbox.checked = true;
-        
-        // Reset active filters
-        activeFilters = ['facilities', 'events'];
-        
-        // Reset date filter
-        currentFilter = 'all';
-        document.querySelectorAll('.filter-button').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        // Update map markers with reset filters
-        updateMapMarkers();
-        
-        // Render the directory with the reset filters
-        renderDirectory();
-        
-        console.log('Filters reset. Active filters:', activeFilters);
+        document.getElementById('filter-facilities').checked = true;
+        document.getElementById('filter-events').checked = true;
+        document.getElementById('filter-toilets').checked = true;
+        updateActiveFilters();
     });
     
     // Sidebar toggle
@@ -342,12 +327,16 @@ function setupEventListeners() {
 function updateActiveFilters() {
     activeFilters = [];
     
-    if (filterFacilitiesCheckbox.checked) {
-        activeFilters.push('facilities');
+    if (document.getElementById('filter-facilities').checked) {
+        activeFilters.push('parent_facility');
     }
     
-    if (filterEventsCheckbox.checked) {
-        activeFilters.push('events');
+    if (document.getElementById('filter-events').checked) {
+        activeFilters.push('event');
+    }
+    
+    if (document.getElementById('filter-toilets').checked) {
+        activeFilters.push('toilet');
     }
     
     // Update map markers based on active filters
@@ -356,34 +345,20 @@ function updateActiveFilters() {
 
 // Update map markers based on active filters
 function updateMapMarkers() {
-    console.log('Updating map markers with active filters:', activeFilters);
-    
-    // Clear all existing markers
+    // Clear existing markers
     markers.forEach(marker => marker.remove());
     markers = [];
     
-    // If no places, return
-    if (!places || places.length === 0) {
-        return;
-    }
-    
     // Filter places based on active filters
-    let filteredPlaces = places;
-    
-    // If there are active filters, apply them
-    if (activeFilters.length > 0) {
-        filteredPlaces = places.filter(place => {
-            return activeFilters.includes(place.type);
-        });
-    }
-    
-    console.log(`Showing ${filteredPlaces.length} places on map`);
+    const filteredPlaces = places.filter(place => {
+        return activeFilters.includes(place.type);
+    });
     
     // Add markers for filtered places
     filteredPlaces.forEach(place => {
         const markerColor = getMarkerColor(place);
-        const lat = place.location ? place.location.lat : (place.latitude || place.lat);
-        const lng = place.location ? place.location.lng : (place.longitude || place.lng);
+        const lat = place.location.lat;
+        const lng = place.location.lng;
         
         const marker = L.marker([lat, lng], {
             icon: L.divIcon({
@@ -399,14 +374,16 @@ function updateMapMarkers() {
             <div class="marker-popup">
                 <h3>${place.name}</h3>
                 <p>${place.description}</p>
-                ${place.amenities ? `<p><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
+                ${place.amenities && place.amenities.length > 0 ? `<p><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
                 <button onclick="selectPlace('${place.id}')">View Details</button>
             </div>
         `);
         
-        // Store marker reference
         markers.push(marker);
     });
+    
+    // Update the directory
+    renderDirectory(filteredPlaces);
 }
 
 // Load data for a location
@@ -452,10 +429,10 @@ async function loadData(location = MELBOURNE_COORDS) {
             id: point.id,
             name: point.title,
             description: point.description,
-            type: point.type,
+            type: point.type || 'parent_facility', // Default to parent_facility if type is not set
             location: {
-                lat: point.latitude,
-                lng: point.longitude
+                lat: parseFloat(point.latitude),
+                lng: parseFloat(point.longitude)
             },
             address: point.address,
             amenities: point.facilities || [],
