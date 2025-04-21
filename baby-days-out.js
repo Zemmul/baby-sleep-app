@@ -847,88 +847,156 @@ function showDetailedView(place) {
     document.querySelector('.sidebar-tabs').style.display = 'none';
     document.querySelector('.location-search').style.display = 'none';
 
-    const container = document.getElementById('directory-container');
+    const container = document.querySelector('.directory-container');
     container.innerHTML = '';
 
     const detailedView = document.createElement('div');
     detailedView.className = 'detailed-view';
 
-    const backButtonContainer = document.createElement('div');
-    backButtonContainer.className = 'back-button-container';
+    // Back button
+    const backContainer = document.createElement('div');
+    backContainer.className = 'back-button-container';
     const backButton = document.createElement('button');
     backButton.className = 'back-button';
     backButton.innerHTML = `
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        Back to List
+        Back to list
     `;
     backButton.onclick = () => {
-        // Show tabs and search again
-        document.querySelector('.sidebar-tabs').style.display = 'flex';
-        document.querySelector('.location-search').style.display = 'block';
-        
-        // Remove place ID from URL
-        const url = new URL(window.location);
-        url.searchParams.delete('place');
-        window.history.pushState({}, '', url);
-        
-        showDirectoryListing();
+        document.querySelector('.sidebar-tabs').style.display = '';
+        document.querySelector('.location-search').style.display = '';
+        renderDirectory();
+        history.pushState({}, '', window.location.pathname);
     };
-    backButtonContainer.appendChild(backButton);
-    detailedView.appendChild(backButtonContainer);
+    backContainer.appendChild(backButton);
+    detailedView.appendChild(backContainer);
 
+    // Header
     const header = document.createElement('div');
     header.className = 'detailed-header';
-    header.innerHTML = `
-        <h2>${place.name}</h2>
-        <span class="type-badge ${place.type}">${place.type.replace('_', ' ')}</span>
-    `;
+    const title = document.createElement('h2');
+    title.textContent = place.name;
+    header.appendChild(title);
+    
+    // Add type badge if available
+    if (place.type) {
+        const typeBadge = document.createElement('span');
+        typeBadge.className = `type-badge ${place.type}`;
+        typeBadge.textContent = place.type.replace('_', ' ');
+        header.appendChild(typeBadge);
+    }
+    
     detailedView.appendChild(header);
 
+    // Content
     const content = document.createElement('div');
     content.className = 'detailed-content';
 
+    // Description
     if (place.description) {
-        const description = document.createElement('p');
+        const description = document.createElement('div');
         description.className = 'description';
         description.textContent = place.description;
         content.appendChild(description);
     }
 
+    // Event-specific details
+    if (place.type === 'event') {
+        const eventDetails = document.createElement('div');
+        eventDetails.className = 'details event-details';
+        
+        // Date
+        if (place.date) {
+            const dateItem = document.createElement('div');
+            dateItem.className = 'detail-item';
+            dateItem.innerHTML = `<strong>Date:</strong> ${formatDate(place.date)}`;
+            eventDetails.appendChild(dateItem);
+        }
+        
+        // Time
+        if (place.time) {
+            const timeItem = document.createElement('div');
+            timeItem.className = 'detail-item';
+            timeItem.innerHTML = `<strong>Time:</strong> ${place.time}`;
+            eventDetails.appendChild(timeItem);
+        }
+        
+        // Booking required
+        if (place.bookingRequired !== undefined) {
+            const bookingItem = document.createElement('div');
+            bookingItem.className = 'detail-item';
+            bookingItem.innerHTML = `<strong>Booking Required:</strong> ${place.bookingRequired ? 'Yes' : 'No'}`;
+            eventDetails.appendChild(bookingItem);
+        }
+        
+        // Is free
+        if (place.isFree !== undefined) {
+            const costItem = document.createElement('div');
+            costItem.className = 'detail-item';
+            costItem.innerHTML = `<strong>Cost:</strong> ${place.isFree ? 'Free' : 'Paid'}`;
+            eventDetails.appendChild(costItem);
+        }
+        
+        content.appendChild(eventDetails);
+    }
+
+    // General details
     const details = document.createElement('div');
     details.className = 'details';
 
+    // Address
     if (place.address) {
-        const addressItem = document.createElement('div');
-        addressItem.className = 'detail-item';
-        addressItem.innerHTML = `<strong>Address:</strong> ${place.address}`;
-        details.appendChild(addressItem);
+        const address = document.createElement('div');
+        address.className = 'detail-item';
+        address.innerHTML = `<strong>Address:</strong> ${place.address}`;
+        details.appendChild(address);
     }
 
+    // Website
     if (place.websiteUrl) {
-        const websiteItem = document.createElement('div');
-        websiteItem.className = 'detail-item';
-        websiteItem.innerHTML = `<strong>Website:</strong> <a href="${place.websiteUrl}" target="_blank">${place.websiteUrl}</a>`;
-        details.appendChild(websiteItem);
+        const website = document.createElement('div');
+        website.className = 'detail-item';
+        website.innerHTML = `<strong>Website:</strong> <a href="${place.websiteUrl}" target="_blank">${place.websiteUrl}</a>`;
+        details.appendChild(website);
     }
 
+    // Phone
     if (place.contactInfo) {
-        const phoneItem = document.createElement('div');
-        phoneItem.className = 'detail-item';
-        phoneItem.innerHTML = `<strong>Phone:</strong> ${place.contactInfo}`;
-        details.appendChild(phoneItem);
+        const phone = document.createElement('div');
+        phone.className = 'detail-item';
+        phone.innerHTML = `<strong>Phone:</strong> <a href="tel:${place.contactInfo}">${place.contactInfo}</a>`;
+        details.appendChild(phone);
     }
 
+    // Opening hours
     if (place.startTime && place.endTime) {
-        const hoursItem = document.createElement('div');
-        hoursItem.className = 'detail-item';
-        hoursItem.innerHTML = `<strong>Opening Hours:</strong> ${place.startTime} - ${place.endTime}`;
-        details.appendChild(hoursItem);
+        const hours = document.createElement('div');
+        hours.className = 'detail-item';
+        hours.innerHTML = `<strong>Opening Hours:</strong> ${place.startTime} - ${place.endTime}`;
+        details.appendChild(hours);
+    }
+
+    // Cost
+    if (place.cost) {
+        const cost = document.createElement('div');
+        cost.className = 'detail-item';
+        cost.innerHTML = `<strong>Cost:</strong> ${place.cost}`;
+        details.appendChild(cost);
+    }
+
+    // Amenities
+    if (place.amenities && place.amenities.length > 0) {
+        const amenities = document.createElement('div');
+        amenities.className = 'detail-item';
+        amenities.innerHTML = `<strong>Amenities:</strong> ${place.amenities.join(', ')}`;
+        details.appendChild(amenities);
     }
 
     content.appendChild(details);
 
+    // Tags
     if (place.tags && place.tags.length > 0) {
         const tagsContainer = document.createElement('div');
         tagsContainer.className = 'tags';
@@ -944,17 +1012,28 @@ function showDetailedView(place) {
     detailedView.appendChild(content);
     container.appendChild(detailedView);
 
-    // Update URL with place ID
-    const url = new URL(window.location);
-    url.searchParams.set('place', place.id);
-    window.history.pushState({}, '', url);
-
-    // Center map on place and open popup
-    map.setView([place.location.lat, place.location.lng], 15);
-    const marker = findMarkerByPlaceId(place.id);
-    if (marker) {
-        marker.openPopup();
+    // Update URL and map
+    history.pushState({}, '', `${window.location.pathname}?place=${place.id}`);
+    
+    if (place.location && place.location.lat && place.location.lng) {
+        const coords = [parseFloat(place.location.lat), parseFloat(place.location.lng)];
+        if (!isNaN(coords[0]) && !isNaN(coords[1])) {
+            map.setView(coords, 15);
+            const marker = findMarkerByPlaceId(place.id);
+            if (marker) {
+                marker.openPopup();
+            }
+        }
     }
+}
+
+function findMarkerByPlaceId(placeId) {
+    for (const marker of markers) {
+        if (marker.getPopup().getContent().includes(`data-place-id="${placeId}"`)) {
+            return marker;
+        }
+    }
+    return null;
 }
 
 // Function to show directory listing

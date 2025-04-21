@@ -2408,30 +2408,31 @@ input:checked + .toggle-slider:before {
 /* Detailed view styles */
 .detailed-view {
     padding: 20px;
-    background: white;
     height: 100%;
     overflow-y: auto;
+    background: white;
 }
 
 .back-button-container {
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
-.detailed-view .back-button {
+.back-button {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: none;
+    padding: 8px 16px;
     border: none;
-    color: #666;
-    font-size: 14px;
-    padding: 8px 0;
+    background: #f5f5f5;
+    border-radius: 20px;
     cursor: pointer;
-    transition: color 0.2s ease;
+    font-size: 14px;
+    color: #333;
+    transition: background-color 0.2s ease;
 }
 
-.detailed-view .back-button:hover {
-    color: #333;
+.back-button:hover {
+    background: #e0e0e0;
 }
 
 .detailed-header {
@@ -2442,74 +2443,56 @@ input:checked + .toggle-slider:before {
     margin: 0 0 12px 0;
     font-size: 24px;
     color: #333;
-    text-transform: capitalize;
-}
-
-.type-badge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: capitalize;
-    color: white;
-}
-
-.type-badge.parent_facility {
-    background-color: #2196F3;
-}
-
-.type-badge.toilet {
-    background-color: #4CAF50;
-}
-
-.type-badge.event {
-    background-color: #FF9800;
 }
 
 .detailed-content {
-    color: #666;
+    color: #444;
 }
 
-.detailed-content .description {
+.description {
     font-size: 16px;
-    line-height: 1.5;
+    line-height: 1.6;
     margin-bottom: 24px;
-    color: #333;
+}
+
+.details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
 }
 
 .detail-item {
-    margin: 12px 0;
-    line-height: 1.6;
+    font-size: 14px;
+    line-height: 1.4;
 }
 
 .detail-item strong {
-    color: #333;
+    color: #666;
 }
 
 .detail-item a {
-    color: #2196F3;
+    color: #0066cc;
     text-decoration: none;
-    word-break: break-all;
 }
 
 .detail-item a:hover {
     text-decoration: underline;
 }
 
-.detailed-content .tags {
-    margin-top: 24px;
+.tags {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    margin-top: 16px;
 }
 
-.detailed-content .tag {
-    background-color: #f0f0f0;
-    color: #666;
+.tag {
     padding: 4px 12px;
+    background: #f0f0f0;
     border-radius: 16px;
     font-size: 12px;
+    color: #666;
 }
 
 /* Responsive design */
