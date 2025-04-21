@@ -854,7 +854,7 @@ function showDetailedView(place) {
     const detailedContent = document.createElement('div');
     detailedContent.className = 'detailed-view';
     
-    // Create back button
+    // Create back to list button
     const backButton = document.createElement('button');
     backButton.className = 'back-button';
     backButton.innerHTML = `
