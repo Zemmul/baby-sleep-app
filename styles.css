@@ -2481,4 +2481,21 @@ input:checked + .toggle-slider:before {
     .tile p {
         font-size: 0.95rem;
     }
+}
+
+/* Map tile optimizations */
+.map-tiles {
+    will-change: transform; /* Optimize tile animations */
+    transform-style: preserve-3d; /* Use GPU acceleration */
+    backface-visibility: hidden; /* Prevent flickering */
+}
+
+.leaflet-tile-container {
+    will-change: transform; /* Optimize container animations */
+    transform-style: preserve-3d;
+}
+
+.leaflet-tile {
+    image-rendering: -webkit-optimize-contrast; /* Sharper tiles on webkit */
+    image-rendering: crisp-edges; /* Sharper tiles on other browsers */
 } 

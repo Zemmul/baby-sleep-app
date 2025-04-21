@@ -95,19 +95,35 @@ function initMap() {
     // Initialize the map centered on Melbourne
     map = L.map('map', {
         zoomControl: false, // We'll add custom zoom control
-        attributionControl: false // We'll add custom attribution
+        attributionControl: false, // We'll add custom attribution
+        preferCanvas: true, // Use Canvas renderer for better performance
+        minZoom: 4, // Limit minimum zoom to Australia level
+        maxZoom: 18, // Limit maximum zoom to street level
+        zoomSnap: 0.5, // Allow fractional zoom levels for smoother zooming
+        wheelDebounceTime: 150, // Debounce wheel events for smoother zooming
+        fadeAnimation: true, // Smooth fade animation for tiles
     }).setView([MELBOURNE_COORDS.lat, MELBOURNE_COORDS.lng], 13);
     
-    // Add Google Maps-like tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 20,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    // Add high-performance map tiles with caching and lazy loading
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        minZoom: 4,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        crossOrigin: true, // Enable CORS for better caching
+        updateWhenIdle: true, // Only load tiles when panning/zooming ends
+        updateWhenZooming: false, // Don't update tiles during zoom
+        keepBuffer: 2, // Keep 2 rows of tiles in buffer (default is 4)
+        maxNativeZoom: 18, // Maximum zoom level for source tiles
+        tileSize: 256,
+        zIndex: 1,
+        detectRetina: true, // Support retina displays
+        className: 'map-tiles' // Add class for potential CSS optimizations
     }).addTo(map);
     
     // Add attribution control first
     L.control.attribution({
         position: 'bottomright',
-        prefix: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        prefix: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
     
     // Add custom zoom control second
@@ -115,23 +131,40 @@ function initMap() {
         position: 'bottomright'
     }).addTo(map);
     
-    // Add location control
+    // Add location control with performance optimizations
     const lc = L.control.locate({
         position: 'bottomright',
         strings: {
             title: "Show my location"
         },
         locateOptions: {
-            enableHighAccuracy: true
-        }
+            enableHighAccuracy: true,
+            maxZoom: 16, // Limit zoom when locating to prevent excessive tile loading
+            watch: false, // Don't watch continuously to save resources
+            timeout: 10000, // 10 second timeout
+            maximumAge: 60000 // Allow 1-minute old location data
+        },
+        clickBehavior: {
+            inView: 'stop',
+            outOfView: 'setView'
+        },
+        showCompass: false, // Disable compass to save resources
+        cacheLocation: true // Cache the last known location
     }).addTo(map);
 
-    // Add map movement listener to update points
+    // Add map movement listener with performance optimizations
+    let moveEndTimeout;
     map.on('moveend', () => {
-        const bounds = map.getBounds();
-        const zoom = map.getZoom();
-        console.log('Map moved. New bounds:', bounds, 'Zoom level:', zoom);
-        updateVisiblePoints();
+        // Clear any existing timeout
+        if (moveEndTimeout) clearTimeout(moveEndTimeout);
+        
+        // Set a new timeout to debounce the update
+        moveEndTimeout = setTimeout(() => {
+            const bounds = map.getBounds();
+            const zoom = map.getZoom();
+            console.log('Map moved. New bounds:', bounds, 'Zoom level:', zoom);
+            updateVisiblePoints();
+        }, 100); // 100ms debounce
     });
 
     // Initialize markers array
