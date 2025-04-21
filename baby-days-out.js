@@ -150,8 +150,8 @@ function initMap() {
         },
         showCompass: false, // Disable compass to save resources
         cacheLocation: true // Cache the last known location
-    }).addTo(map);
-
+                        }).addTo(map);
+                        
     // Add map movement listener with performance optimizations
     let moveEndTimeout;
     map.on('moveend', () => {
@@ -200,9 +200,9 @@ function initMap() {
         const placeId = url.searchParams.get('place');
         if (placeId) {
             selectPlace(placeId);
-        } else {
+    } else {
             showDirectoryListing();
-        }
+    }
     });
     
     // Setup event listeners
@@ -217,148 +217,148 @@ function setupEventListeners() {
     const searchSuggestions = document.getElementById('search-suggestions');
     
     if (locationInput) {
-        locationInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.trim();
-            console.log('Search term:', searchTerm);
-            
-            // Clear previous timeout
-            if (searchTimeout) {
-                clearTimeout(searchTimeout);
-            }
-            
-            // Set new timeout to avoid too many API calls
-            searchTimeout = setTimeout(async () => {
-                if (searchTerm.length >= 2) {
-                    try {
-                        console.log('Fetching suggestions for:', searchTerm);
-                        
-                        // For local development, use sample suggestions
-                        console.log('Using sample suggestions for local development');
-                        const sampleSuggestions = getSampleSuggestions(searchTerm);
-                        console.log('Sample suggestions:', sampleSuggestions);
-                        
-                        // Clear previous suggestions
-                        searchSuggestions.innerHTML = '';
-                        
-                        if (sampleSuggestions && sampleSuggestions.length > 0) {
-                            sampleSuggestions.forEach(suggestion => {
-                                const div = document.createElement('div');
-                                div.className = 'suggestion-item';
-                                
-                                // Format the display name and address
-                                const displayName = suggestion.displayName;
-                                const address = suggestion.address;
-                                
-                                console.log('Suggestion:', {
-                                    displayName,
-                                    address
-                                });
-                                
-                                // Make sure we have an address to display
-                                const mainText = address || displayName;
-                                const secondaryText = address ? displayName : '';
-                                
-                                div.innerHTML = `
-                                    <h4>${mainText}</h4>
-                                    ${secondaryText ? `<p>${secondaryText}</p>` : ''}
-                                `;
-                                
-                                div.addEventListener('click', () => {
-                                    locationInput.value = mainText;
-                                    searchSuggestions.classList.remove('active');
-                                    
-                                    // Update map view and load data
-                                    const coords = suggestion.coords;
-                                    
-                                    currentLocation = coords;
-                                    map.setView([coords.lat, coords.lng], 15);
-                                    
-                                    // Add a marker for the searched location
-                                    addSearchMarker(coords.lat, coords.lng, mainText);
-                                    
-                                    loadData(coords);
-                                });
-                                
-                                searchSuggestions.appendChild(div);
+    locationInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.trim();
+        console.log('Search term:', searchTerm);
+        
+        // Clear previous timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        // Set new timeout to avoid too many API calls
+        searchTimeout = setTimeout(async () => {
+            if (searchTerm.length >= 2) {
+                try {
+                    console.log('Fetching suggestions for:', searchTerm);
+                    
+                    // For local development, use sample suggestions
+                    console.log('Using sample suggestions for local development');
+                    const sampleSuggestions = getSampleSuggestions(searchTerm);
+                    console.log('Sample suggestions:', sampleSuggestions);
+                    
+                    // Clear previous suggestions
+                    searchSuggestions.innerHTML = '';
+                    
+                    if (sampleSuggestions && sampleSuggestions.length > 0) {
+                        sampleSuggestions.forEach(suggestion => {
+                            const div = document.createElement('div');
+                            div.className = 'suggestion-item';
+                            
+                            // Format the display name and address
+                            const displayName = suggestion.displayName;
+                            const address = suggestion.address;
+                            
+                            console.log('Suggestion:', {
+                                displayName,
+                                address
                             });
                             
-                            searchSuggestions.classList.add('active');
-                        } else {
-                            searchSuggestions.classList.remove('active');
-                        }
-                        
-                        /* Commented out for local development
-                        // Use Nominatim to search for locations
-                        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&countrycodes=au&limit=10&addressdetails=1`;
-                        console.log('Fetching from URL:', url);
-                        
-                        const response = await fetch(url);
-                        const suggestions = await response.json();
-                        console.log('Received suggestions:', suggestions);
-                        
-                        // Clear previous suggestions
-                        searchSuggestions.innerHTML = '';
-                        
-                        if (suggestions && suggestions.length > 0) {
-                            suggestions.forEach(suggestion => {
-                                const div = document.createElement('div');
-                                div.className = 'suggestion-item';
+                            // Make sure we have an address to display
+                            const mainText = address || displayName;
+                            const secondaryText = address ? displayName : '';
+                            
+                            div.innerHTML = `
+                                <h4>${mainText}</h4>
+                                ${secondaryText ? `<p>${secondaryText}</p>` : ''}
+                            `;
+                            
+                            div.addEventListener('click', () => {
+                                locationInput.value = mainText;
+                                searchSuggestions.classList.remove('active');
                                 
-                                // Format the display name and address
-                                const displayName = formatDisplayName(suggestion);
-                                const address = formatAddress(suggestion.address);
+                                // Update map view and load data
+                                const coords = suggestion.coords;
                                 
-                                console.log('Suggestion:', {
-                                    displayName,
-                                    address,
-                                    rawAddress: suggestion.address
-                                });
+                                currentLocation = coords;
+                                map.setView([coords.lat, coords.lng], 15);
                                 
-                                // Make sure we have an address to display
-                                const mainText = address || displayName;
-                                const secondaryText = address ? displayName : '';
+                                // Add a marker for the searched location
+                                addSearchMarker(coords.lat, coords.lng, mainText);
                                 
-                                div.innerHTML = `
-                                    <h4>${mainText}</h4>
-                                    ${secondaryText ? `<p>${secondaryText}</p>` : ''}
-                                `;
-                                
-                                div.addEventListener('click', () => {
-                                    locationInput.value = mainText;
-                                    searchSuggestions.classList.remove('active');
-                                    
-                                    // Update map view and load data
-                                    const coords = {
-                                        lat: parseFloat(suggestion.lat),
-                                        lng: parseFloat(suggestion.lon)
-                                    };
-                                    
-                                    currentLocation = coords;
-                                    map.setView([coords.lat, coords.lng], 15);
-                                    
-                                    // Add a marker for the searched location
-                                    addSearchMarker(coords.lat, coords.lng, mainText);
-                                    
-                                    loadData(coords);
-                                });
-                                
-                                searchSuggestions.appendChild(div);
+                                loadData(coords);
                             });
                             
-                            searchSuggestions.classList.add('active');
-                        } else {
-                            searchSuggestions.classList.remove('active');
-                        }
-                        */
-                    } catch (error) {
-                        console.error('Error fetching location suggestions:', error);
+                            searchSuggestions.appendChild(div);
+                        });
+                        
+                        searchSuggestions.classList.add('active');
+                    } else {
                         searchSuggestions.classList.remove('active');
                     }
-                } else {
+                    
+                    /* Commented out for local development
+                    // Use Nominatim to search for locations
+                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&countrycodes=au&limit=10&addressdetails=1`;
+                    console.log('Fetching from URL:', url);
+                    
+                    const response = await fetch(url);
+                    const suggestions = await response.json();
+                    console.log('Received suggestions:', suggestions);
+                    
+                    // Clear previous suggestions
+                    searchSuggestions.innerHTML = '';
+                    
+                    if (suggestions && suggestions.length > 0) {
+                        suggestions.forEach(suggestion => {
+                            const div = document.createElement('div');
+                            div.className = 'suggestion-item';
+                            
+                            // Format the display name and address
+                            const displayName = formatDisplayName(suggestion);
+                            const address = formatAddress(suggestion.address);
+                            
+                            console.log('Suggestion:', {
+                                displayName,
+                                address,
+                                rawAddress: suggestion.address
+                            });
+                            
+                            // Make sure we have an address to display
+                            const mainText = address || displayName;
+                            const secondaryText = address ? displayName : '';
+                            
+                            div.innerHTML = `
+                                <h4>${mainText}</h4>
+                                ${secondaryText ? `<p>${secondaryText}</p>` : ''}
+                            `;
+                            
+                            div.addEventListener('click', () => {
+                                locationInput.value = mainText;
+                                searchSuggestions.classList.remove('active');
+                                
+                                // Update map view and load data
+                                const coords = {
+                                    lat: parseFloat(suggestion.lat),
+                                    lng: parseFloat(suggestion.lon)
+                                };
+                                
+                                currentLocation = coords;
+                                map.setView([coords.lat, coords.lng], 15);
+                                
+                                // Add a marker for the searched location
+                                addSearchMarker(coords.lat, coords.lng, mainText);
+                                
+                                loadData(coords);
+                            });
+                            
+                            searchSuggestions.appendChild(div);
+                        });
+                        
+                        searchSuggestions.classList.add('active');
+                    } else {
+                        searchSuggestions.classList.remove('active');
+                    }
+                    */
+                } catch (error) {
+                    console.error('Error fetching location suggestions:', error);
                     searchSuggestions.classList.remove('active');
                 }
-            }, 300); // 300ms delay
-        });
+            } else {
+                searchSuggestions.classList.remove('active');
+            }
+        }, 300); // 300ms delay
+    });
     }
     
     // Close suggestions when clicking outside
@@ -423,9 +423,9 @@ function setupEventListeners() {
     // Sidebar toggle
     const sidebarToggle = document.getElementById('sidebar-toggle');
     if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', () => {
-            document.querySelector('.sidebar').classList.toggle('collapsed');
-        });
+    sidebarToggle.addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.toggle('collapsed');
+    });
     }
 
     // Tab switching functionality
@@ -433,27 +433,27 @@ function setupEventListeners() {
     const tabContents = document.querySelectorAll('.sidebar-tab-content');
 
     if (tabs.length > 0 && tabContents.length > 0) {
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                // Remove active class from all tabs
-                tabs.forEach(t => t.classList.remove('active'));
-                // Add active class to clicked tab
-                tab.classList.add('active');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Remove active class from all tabs
+            tabs.forEach(t => t.classList.remove('active'));
+            // Add active class to clicked tab
+            tab.classList.add('active');
 
-                // Hide all tab contents
-                tabContents.forEach(content => content.style.display = 'none');
-                // Show the corresponding tab content
-                const tabId = tab.getAttribute('data-tab');
+            // Hide all tab contents
+            tabContents.forEach(content => content.style.display = 'none');
+            // Show the corresponding tab content
+            const tabId = tab.getAttribute('data-tab');
                 const tabContent = document.getElementById(tabId + '-tab');
                 if (tabContent) {
                     tabContent.style.display = 'block';
                 }
-            });
         });
+    });
 
-        // Set initial active tab
-        tabs[0].classList.add('active');
-        tabContents[0].style.display = 'block';
+    // Set initial active tab
+    tabs[0].classList.add('active');
+    tabContents[0].style.display = 'block';
     }
 }
 
@@ -563,7 +563,7 @@ async function loadData(location = MELBOURNE_COORDS) {
             } else if (point.hasOwnProperty('lat') && point.hasOwnProperty('lng')) {
                 lat = parseFloat(point.lat);
                 lng = parseFloat(point.lng);
-            } else {
+    } else {
                 console.warn('Point missing latitude/longitude:', point);
                 return null;
             }
@@ -661,24 +661,24 @@ function getMarkerColor(place) {
 
 // Function to create a marker for a place
 function createMarker(place) {
-    const markerColor = getMarkerColor(place);
-    const lat = place.location.lat;
-    const lng = place.location.lng;
-    
-    const marker = L.marker([lat, lng], {
-        icon: L.divIcon({
+            const markerColor = getMarkerColor(place);
+            const lat = place.location.lat;
+            const lng = place.location.lng;
+            
+            const marker = L.marker([lat, lng], {
+                icon: L.divIcon({
             className: `custom-marker marker-${place.id}`, // Add place ID to class
             html: `<div class="marker-dot" style="background-color: ${markerColor};"></div>`,
-            iconSize: [12, 12],
-            iconAnchor: [6, 6]
-        })
-    }).addTo(map);
-    
-    // Add popup with place info
-    marker.bindPopup(`
-        <div class="marker-popup">
-            <h3>${place.name}</h3>
-            <p>${place.description}</p>
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6]
+                })
+            }).addTo(map);
+            
+            // Add popup with place info
+            marker.bindPopup(`
+                <div class="marker-popup">
+                    <h3>${place.name}</h3>
+                    <p>${place.description}</p>
             ${place.cost ? `<p class="cost"><strong>Cost:</strong> ${place.cost}</p>` : ''}
             ${place.amenities && place.amenities.length > 0 ? `<p class="amenities"><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
             ${place.tags && place.tags.length > 0 ? `
@@ -689,9 +689,9 @@ function createMarker(place) {
                 </div>
             ` : ''}
             <button onclick="window.handlePlaceSelect('${place.id}')">View Details</button>
-        </div>
-    `);
-    
+                </div>
+            `);
+            
     return marker;
 }
 
@@ -843,197 +843,97 @@ function deg2rad(deg) {
 
 // Function to show detailed view of a place
 function showDetailedView(place) {
-    // Hide tabs and search
-    document.querySelector('.sidebar-tabs').style.display = 'none';
-    document.querySelector('.location-search').style.display = 'none';
-
-    const container = document.querySelector('.directory-container');
-    container.innerHTML = '';
-
-    const detailedView = document.createElement('div');
-    detailedView.className = 'detailed-view';
-
-    // Back button
-    const backContainer = document.createElement('div');
-    backContainer.className = 'back-button-container';
+    if (!directoryContainer) return;
+    
+    // Update URL with place ID
+    const url = new URL(window.location);
+    url.searchParams.set('place', place.id);
+    window.history.pushState({}, '', url);
+    
+    // Create detailed view content
+    const detailedContent = document.createElement('div');
+    detailedContent.className = 'detailed-view';
+    
+    // Create back button
     const backButton = document.createElement('button');
     backButton.className = 'back-button';
     backButton.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
         </svg>
-        Back to list
+        Back to List
     `;
-    backButton.onclick = () => {
-        document.querySelector('.sidebar-tabs').style.display = '';
-        document.querySelector('.location-search').style.display = '';
-        renderDirectory();
-        history.pushState({}, '', window.location.pathname);
-    };
-    backContainer.appendChild(backButton);
-    detailedView.appendChild(backContainer);
-
-    // Header
-    const header = document.createElement('div');
-    header.className = 'detailed-header';
-    const title = document.createElement('h2');
-    title.textContent = place.name;
-    header.appendChild(title);
+    backButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Remove place ID from URL
+        const url = new URL(window.location);
+        url.searchParams.delete('place');
+        window.history.pushState({}, '', url);
+        
+        // Show directory listing
+        showDirectoryListing();
+    });
     
-    // Add type badge if available
-    if (place.type) {
-        const typeBadge = document.createElement('span');
-        typeBadge.className = `type-badge ${place.type}`;
-        typeBadge.textContent = place.type.replace('_', ' ');
-        header.appendChild(typeBadge);
-    }
+    // Add back button first
+    detailedContent.appendChild(backButton);
     
-    detailedView.appendChild(header);
-
-    // Content
-    const content = document.createElement('div');
-    content.className = 'detailed-content';
-
-    // Description
-    if (place.description) {
-        const description = document.createElement('div');
-        description.className = 'description';
-        description.textContent = place.description;
-        content.appendChild(description);
-    }
-
-    // Event-specific details
-    if (place.type === 'event') {
-        const eventDetails = document.createElement('div');
-        eventDetails.className = 'details event-details';
+    // Format the content
+    const content = `
+        <div class="detailed-header">
+            <h2>${place.name}</h2>
+            <div class="type-badge ${place.type}">${place.type.replace('_', ' ')}</div>
+        </div>
         
-        // Date
-        if (place.date) {
-            const dateItem = document.createElement('div');
-            dateItem.className = 'detail-item';
-            dateItem.innerHTML = `<strong>Date:</strong> ${formatDate(place.date)}`;
-            eventDetails.appendChild(dateItem);
-        }
-        
-        // Time
-        if (place.time) {
-            const timeItem = document.createElement('div');
-            timeItem.className = 'detail-item';
-            timeItem.innerHTML = `<strong>Time:</strong> ${place.time}`;
-            eventDetails.appendChild(timeItem);
-        }
-        
-        // Booking required
-        if (place.bookingRequired !== undefined) {
-            const bookingItem = document.createElement('div');
-            bookingItem.className = 'detail-item';
-            bookingItem.innerHTML = `<strong>Booking Required:</strong> ${place.bookingRequired ? 'Yes' : 'No'}`;
-            eventDetails.appendChild(bookingItem);
-        }
-        
-        // Is free
-        if (place.isFree !== undefined) {
-            const costItem = document.createElement('div');
-            costItem.className = 'detail-item';
-            costItem.innerHTML = `<strong>Cost:</strong> ${place.isFree ? 'Free' : 'Paid'}`;
-            eventDetails.appendChild(costItem);
-        }
-        
-        content.appendChild(eventDetails);
-    }
-
-    // General details
-    const details = document.createElement('div');
-    details.className = 'details';
-
-    // Address
-    if (place.address) {
-        const address = document.createElement('div');
-        address.className = 'detail-item';
-        address.innerHTML = `<strong>Address:</strong> ${place.address}`;
-        details.appendChild(address);
-    }
-
-    // Website
-    if (place.websiteUrl) {
-        const website = document.createElement('div');
-        website.className = 'detail-item';
-        website.innerHTML = `<strong>Website:</strong> <a href="${place.websiteUrl}" target="_blank">${place.websiteUrl}</a>`;
-        details.appendChild(website);
-    }
-
-    // Phone
-    if (place.contactInfo) {
-        const phone = document.createElement('div');
-        phone.className = 'detail-item';
-        phone.innerHTML = `<strong>Phone:</strong> <a href="tel:${place.contactInfo}">${place.contactInfo}</a>`;
-        details.appendChild(phone);
-    }
-
-    // Opening hours
-    if (place.startTime && place.endTime) {
-        const hours = document.createElement('div');
-        hours.className = 'detail-item';
-        hours.innerHTML = `<strong>Opening Hours:</strong> ${place.startTime} - ${place.endTime}`;
-        details.appendChild(hours);
-    }
-
-    // Cost
-    if (place.cost) {
-        const cost = document.createElement('div');
-        cost.className = 'detail-item';
-        cost.innerHTML = `<strong>Cost:</strong> ${place.cost}`;
-        details.appendChild(cost);
-    }
-
-    // Amenities
-    if (place.amenities && place.amenities.length > 0) {
-        const amenities = document.createElement('div');
-        amenities.className = 'detail-item';
-        amenities.innerHTML = `<strong>Amenities:</strong> ${place.amenities.join(', ')}`;
-        details.appendChild(amenities);
-    }
-
-    content.appendChild(details);
-
-    // Tags
-    if (place.tags && place.tags.length > 0) {
-        const tagsContainer = document.createElement('div');
-        tagsContainer.className = 'tags';
-        place.tags.forEach(tag => {
-            const tagElement = document.createElement('span');
-            tagElement.className = 'tag';
-            tagElement.textContent = tag;
-            tagsContainer.appendChild(tagElement);
-        });
-        content.appendChild(tagsContainer);
-    }
-
-    detailedView.appendChild(content);
-    container.appendChild(detailedView);
-
-    // Update URL and map
-    history.pushState({}, '', `${window.location.pathname}?place=${place.id}`);
-    
-    if (place.location && place.location.lat && place.location.lng) {
-        const coords = [parseFloat(place.location.lat), parseFloat(place.location.lng)];
-        if (!isNaN(coords[0]) && !isNaN(coords[1])) {
-            map.setView(coords, 15);
-            const marker = findMarkerByPlaceId(place.id);
-            if (marker) {
-                marker.openPopup();
+        <div class="detailed-content">
+            <p class="description">${place.description || ''}</p>
+            
+            ${place.cost ? `<p class="detail-item"><strong>Cost:</strong> ${place.cost}</p>` : ''}
+            
+            ${place.amenities && place.amenities.length > 0 ? 
+                `<p class="detail-item"><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''
             }
-        }
-    }
-}
-
-function findMarkerByPlaceId(placeId) {
-    for (const marker of markers) {
-        if (marker.getPopup().getContent().includes(`data-place-id="${placeId}"`)) {
-            return marker;
-        }
-    }
-    return null;
+            
+            ${place.location ? `
+                <p class="detail-item"><strong>Location:</strong><br>
+                Latitude: ${place.location.lat.toFixed(6)}<br>
+                Longitude: ${place.location.lng.toFixed(6)}
+                </p>
+            ` : ''}
+            
+            ${place.address ? `<p class="detail-item"><strong>Address:</strong> ${place.address}</p>` : ''}
+            
+            ${place.websiteUrl ? `
+                <p class="detail-item">
+                    <strong>Website:</strong> 
+                    <a href="${place.websiteUrl}" target="_blank" rel="noopener noreferrer">${place.websiteUrl}</a>
+                </p>
+            ` : ''}
+            
+            ${place.contactInfo ? `<p class="detail-item"><strong>Contact:</strong> ${place.contactInfo}</p>` : ''}
+            
+            ${place.ageGroup ? `<p class="detail-item"><strong>Age Group:</strong> ${place.ageGroup}</p>` : ''}
+            
+            ${place.startTime && place.endTime ? `
+                <p class="detail-item"><strong>Hours:</strong> ${place.startTime} - ${place.endTime}</p>
+            ` : ''}
+            
+            ${place.tags && place.tags.length > 0 ? `
+                <div class="tags">
+                    ${place.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.innerHTML = content;
+    detailedContent.appendChild(contentDiv);
+    
+    // Clear the container and add the detailed view
+    directoryContainer.innerHTML = '';
+    directoryContainer.appendChild(detailedContent);
 }
 
 // Function to show directory listing

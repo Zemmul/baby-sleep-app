@@ -2408,31 +2408,26 @@ input:checked + .toggle-slider:before {
 /* Detailed view styles */
 .detailed-view {
     padding: 20px;
+    background: white;
     height: 100%;
     overflow-y: auto;
-    background: white;
 }
 
-.back-button-container {
-    margin-bottom: 20px;
-}
-
-.back-button {
+.detailed-view .back-button {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 16px;
+    background: none;
     border: none;
-    background: #f5f5f5;
-    border-radius: 20px;
-    cursor: pointer;
+    color: #666;
     font-size: 14px;
-    color: #333;
-    transition: background-color 0.2s ease;
+    padding: 0;
+    cursor: pointer;
+    margin-bottom: 24px;
 }
 
-.back-button:hover {
-    background: #e0e0e0;
+.detailed-view .back-button:hover {
+    color: #333;
 }
 
 .detailed-header {
@@ -2443,56 +2438,74 @@ input:checked + .toggle-slider:before {
     margin: 0 0 12px 0;
     font-size: 24px;
     color: #333;
+    text-transform: capitalize;
+}
+
+.type-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: capitalize;
+    color: white;
+}
+
+.type-badge.parent_facility {
+    background-color: #2196F3;
+}
+
+.type-badge.toilet {
+    background-color: #4CAF50;
+}
+
+.type-badge.event {
+    background-color: #FF9800;
 }
 
 .detailed-content {
-    color: #444;
-}
-
-.description {
-    font-size: 16px;
-    line-height: 1.6;
-    margin-bottom: 24px;
-}
-
-.details {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 24px;
-}
-
-.detail-item {
-    font-size: 14px;
-    line-height: 1.4;
-}
-
-.detail-item strong {
     color: #666;
 }
 
+.detailed-content .description {
+    font-size: 16px;
+    line-height: 1.5;
+    margin-bottom: 24px;
+    color: #333;
+}
+
+.detail-item {
+    margin: 12px 0;
+    line-height: 1.6;
+}
+
+.detail-item strong {
+    color: #333;
+}
+
 .detail-item a {
-    color: #0066cc;
+    color: #2196F3;
     text-decoration: none;
+    word-break: break-all;
 }
 
 .detail-item a:hover {
     text-decoration: underline;
 }
 
-.tags {
+.detailed-content .tags {
+    margin-top: 24px;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 16px;
 }
 
-.tag {
+.detailed-content .tag {
+    background-color: #f0f0f0;
+    color: #666;
     padding: 4px 12px;
-    background: #f0f0f0;
     border-radius: 16px;
     font-size: 12px;
-    color: #666;
 }
 
 /* Responsive design */
