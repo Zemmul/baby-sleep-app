@@ -808,6 +808,88 @@ function deg2rad(deg) {
     return deg * (Math.PI/180);
 }
 
+// Function to show detailed view of a place
+function showDetailedView(place) {
+    if (!directoryContainer) return;
+    
+    // Store current view content for back button
+    const previousContent = directoryContainer.innerHTML;
+    
+    // Create detailed view content
+    const detailedContent = document.createElement('div');
+    detailedContent.className = 'detailed-view';
+    
+    // Create back button
+    const backButton = document.createElement('button');
+    backButton.className = 'back-button';
+    backButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+        </svg>
+        Back to List
+    `;
+    backButton.addEventListener('click', () => {
+        directoryContainer.innerHTML = previousContent;
+    });
+    
+    // Format the content
+    const content = `
+        <div class="detailed-header">
+            <h2>${place.name}</h2>
+            <div class="type-badge ${place.type}">${place.type.replace('_', ' ')}</div>
+        </div>
+        
+        <div class="detailed-content">
+            <p class="description">${place.description || ''}</p>
+            
+            ${place.cost ? `<p class="detail-item"><strong>Cost:</strong> ${place.cost}</p>` : ''}
+            
+            ${place.amenities && place.amenities.length > 0 ? 
+                `<p class="detail-item"><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''
+            }
+            
+            ${place.location ? `
+                <p class="detail-item"><strong>Location:</strong><br>
+                Latitude: ${place.location.lat.toFixed(6)}<br>
+                Longitude: ${place.location.lng.toFixed(6)}
+                </p>
+            ` : ''}
+            
+            ${place.address ? `<p class="detail-item"><strong>Address:</strong> ${place.address}</p>` : ''}
+            
+            ${place.websiteUrl ? `
+                <p class="detail-item">
+                    <strong>Website:</strong> 
+                    <a href="${place.websiteUrl}" target="_blank" rel="noopener noreferrer">${place.websiteUrl}</a>
+                </p>
+            ` : ''}
+            
+            ${place.contactInfo ? `<p class="detail-item"><strong>Contact:</strong> ${place.contactInfo}</p>` : ''}
+            
+            ${place.ageGroup ? `<p class="detail-item"><strong>Age Group:</strong> ${place.ageGroup}</p>` : ''}
+            
+            ${place.startTime && place.endTime ? `
+                <p class="detail-item"><strong>Hours:</strong> ${place.startTime} - ${place.endTime}</p>
+            ` : ''}
+            
+            ${place.tags && place.tags.length > 0 ? `
+                <div class="tags">
+                    ${place.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    detailedContent.appendChild(backButton);
+    const contentDiv = document.createElement('div');
+    contentDiv.innerHTML = content;
+    detailedContent.appendChild(contentDiv);
+    
+    // Replace directory content with detailed view
+    directoryContainer.innerHTML = '';
+    directoryContainer.appendChild(detailedContent);
+}
+
 // Function to select a place
 function selectPlace(id) {
     console.log('Selecting place:', id);
@@ -816,6 +898,9 @@ function selectPlace(id) {
         console.error('Place not found:', id);
         return;
     }
+    
+    // Show detailed view
+    showDetailedView(place);
     
     // Center map on the selected place
     map.setView([place.location.lat, place.location.lng], 16);
