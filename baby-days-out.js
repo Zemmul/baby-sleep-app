@@ -636,6 +636,77 @@ function getMarkerColor(place) {
     }
 }
 
+// Function to create a marker for a place
+function createMarker(place) {
+    const markerColor = getMarkerColor(place);
+    const lat = place.location.lat;
+    const lng = place.location.lng;
+    
+    const marker = L.marker([lat, lng], {
+        icon: L.divIcon({
+            className: `custom-marker marker-${place.id}`, // Add place ID to class
+            html: `<div class="marker-dot" style="background-color: ${markerColor};"></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6]
+        })
+    }).addTo(map);
+    
+    // Add popup with place info
+    marker.bindPopup(`
+        <div class="marker-popup">
+            <h3>${place.name}</h3>
+            <p>${place.description}</p>
+            ${place.cost ? `<p class="cost"><strong>Cost:</strong> ${place.cost}</p>` : ''}
+            ${place.amenities && place.amenities.length > 0 ? `<p class="amenities"><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
+            ${place.tags && place.tags.length > 0 ? `
+                <div class="tags">
+                    ${place.tags.map(tag => `
+                        <span class="tag">${tag}</span>
+                    `).join('')}
+                </div>
+            ` : ''}
+            <button onclick="window.handlePlaceSelect('${place.id}')">View Details</button>
+        </div>
+    `);
+    
+    return marker;
+}
+
+// Function to update visible points based on map viewport
+function updateVisiblePoints() {
+    if (!places || places.length === 0) return;
+
+    const bounds = map.getBounds();
+    console.log('Updating visible points for bounds:', bounds);
+
+    // Clear existing markers
+    markers.forEach(marker => marker.remove());
+    markers = [];
+
+    // Filter places based on current viewport and active filters
+    const visiblePlaces = places.filter(place => {
+        // Check if place is within current bounds
+        const isInBounds = bounds.contains([place.location.lat, place.location.lng]);
+        // Check if place type matches active filters
+        const matchesFilter = activeFilters.includes(place.type);
+        return isInBounds && matchesFilter;
+    });
+
+    console.log(`Found ${visiblePlaces.length} visible places out of ${places.length} total places`);
+
+    // Add markers for visible places
+    visiblePlaces.forEach(place => {
+        const marker = createMarker(place);
+        markers.push(marker);
+    });
+
+    // Update the directory with visible places
+    renderDirectory(visiblePlaces);
+    
+    // Update the results count with visible places count
+    updateResultsCount(visiblePlaces.length);
+}
+
 // Function to render the directory
 function renderDirectory(places) {
     if (!directoryContainer) {
@@ -658,6 +729,7 @@ function renderDirectory(places) {
     places.forEach(place => {
         const placeCard = document.createElement('div');
         placeCard.className = 'place-card';
+        placeCard.setAttribute('data-place-id', place.id); // Add place ID as data attribute
         
         // Create the card content
         const content = `
@@ -679,6 +751,24 @@ function renderDirectory(places) {
         `;
         
         placeCard.innerHTML = content;
+
+        // Add hover event listeners
+        placeCard.addEventListener('mouseenter', () => {
+            // Add highlight class to corresponding marker
+            const markerElement = document.querySelector(`.marker-${place.id}`);
+            if (markerElement) {
+                markerElement.classList.add('marker-highlight');
+            }
+        });
+
+        placeCard.addEventListener('mouseleave', () => {
+            // Remove highlight class from corresponding marker
+            const markerElement = document.querySelector(`.marker-${place.id}`);
+            if (markerElement) {
+                markerElement.classList.remove('marker-highlight');
+            }
+        });
+        
         gridContainer.appendChild(placeCard);
     });
     
@@ -1218,69 +1308,4 @@ function filterPlaces(places) {
     
     console.log('Filtered places:', filteredPlaces);
     return filteredPlaces;
-}
-
-// Function to update visible points based on map viewport
-function updateVisiblePoints() {
-    if (!places || places.length === 0) return;
-
-    const bounds = map.getBounds();
-    console.log('Updating visible points for bounds:', bounds);
-
-    // Clear existing markers
-    markers.forEach(marker => marker.remove());
-    markers = [];
-
-    // Filter places based on current viewport and active filters
-    const visiblePlaces = places.filter(place => {
-        // Check if place is within current bounds
-        const isInBounds = bounds.contains([place.location.lat, place.location.lng]);
-        // Check if place type matches active filters
-        const matchesFilter = activeFilters.includes(place.type);
-        return isInBounds && matchesFilter;
-    });
-
-    console.log(`Found ${visiblePlaces.length} visible places out of ${places.length} total places`);
-
-    // Add markers for visible places
-    visiblePlaces.forEach(place => {
-        const markerColor = getMarkerColor(place);
-        const lat = place.location.lat;
-        const lng = place.location.lng;
-        
-        const marker = L.marker([lat, lng], {
-            icon: L.divIcon({
-                className: 'custom-marker',
-                html: `<div style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px ${markerColor};"></div>`,
-                iconSize: [12, 12],
-                iconAnchor: [6, 6]
-            })
-        }).addTo(map);
-        
-        // Add popup with place info
-        marker.bindPopup(`
-            <div class="marker-popup">
-                <h3>${place.name}</h3>
-                <p>${place.description}</p>
-                ${place.cost ? `<p class="cost"><strong>Cost:</strong> ${place.cost}</p>` : ''}
-                ${place.amenities && place.amenities.length > 0 ? `<p class="amenities"><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
-                ${place.tags && place.tags.length > 0 ? `
-                    <div class="tags">
-                        ${place.tags.map(tag => `
-                            <span class="tag">${tag}</span>
-                        `).join('')}
-                    </div>
-                ` : ''}
-                <button onclick="window.handlePlaceSelect('${place.id}')">View Details</button>
-            </div>
-        `);
-        
-        markers.push(marker);
-    });
-
-    // Update the directory with visible places
-    renderDirectory(visiblePlaces);
-    
-    // Update the results count with visible places count
-    updateResultsCount(visiblePlaces.length);
 } 
