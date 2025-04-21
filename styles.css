@@ -2314,26 +2314,29 @@ input:checked + .toggle-slider:before {
 }
 
 .search-marker-dot {
-    width: 16px;
-    height: 16px;
-    background-color: #4285F4;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    border: 3px solid white;
-    box-shadow: 0 0 0 2px #4285F4;
+    transition: all 0.3s ease;
+    transform-origin: center center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 /* Pulse animation for the search marker */
 @keyframes pulse {
     0% {
-        transform: scale(1);
+        transform: translate(-50%, -50%) scale(1);
         opacity: 1;
     }
     50% {
-        transform: scale(1.2);
-        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 0.7;
     }
     100% {
-        transform: scale(1);
+        transform: translate(-50%, -50%) scale(1);
         opacity: 1;
     }
 }
@@ -2505,8 +2508,6 @@ input:checked + .toggle-slider:before {
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    border: 2px solid white;
-    box-shadow: 0 0 0 2px currentColor;
     transition: all 0.3s ease;
     transform-origin: center center;
     position: absolute;
