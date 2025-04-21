@@ -125,7 +125,15 @@ function initMap() {
             enableHighAccuracy: true
         }
     }).addTo(map);
-    
+
+    // Add map movement listener to update points
+    map.on('moveend', () => {
+        const bounds = map.getBounds();
+        const zoom = map.getZoom();
+        console.log('Map moved. New bounds:', bounds, 'Zoom level:', zoom);
+        updateVisiblePoints();
+    });
+
     // Initialize markers array
     markers = [];
     
@@ -412,8 +420,8 @@ function updateActiveFilters() {
         activeFilters.push('toilet');
     }
     
-    // Update map markers based on active filters
-    updateMapMarkers();
+    // Update visible points based on new filters
+    updateVisiblePoints();
 }
 
 // Update map markers based on active filters
@@ -476,18 +484,13 @@ async function loadData(location = MELBOURNE_COORDS) {
         directoryContainer.innerHTML = '<div class="loading">Finding places...</div>';
     }
     
-    // Clear existing markers
-    markers.forEach(marker => marker.remove());
-    markers = [];
-    
     try {
         // Fetch all points from Supabase
         console.log('Fetching all points in Victoria');
         const supabaseData = await fetchAllPoints();
         console.log('Supabase data length:', supabaseData.length);
-        console.log('Supabase data:', supabaseData);
         
-        // Transform Supabase data to match our expected format
+        // Transform Supabase data
         const transformedData = supabaseData.map(point => {
             // Determine the correct latitude and longitude values
             let lat, lng;
@@ -542,90 +545,26 @@ async function loadData(location = MELBOURNE_COORDS) {
                 createdAt: point.created_at || '',
                 updatedAt: point.updated_at || ''
             };
-        }).filter(Boolean); // Remove null entries
+        }).filter(Boolean);
         
-        console.log('Transformed Supabase data:', transformedData);
         console.log('Transformed data length:', transformedData.length);
         
-        // Only use sample data if no Supabase data is found
-        if (transformedData.length === 0) {
-            console.log('No Supabase data found, using sample data as fallback');
-            const sampleData = getSampleData(location);
-            places = sampleData;
-        } else {
-            console.log('Using Supabase data');
-            places = transformedData;
-        }
-        
-        console.log(`Total places: ${places.length}`);
-        
-        // Filter places based on active filters
-        let filteredPlaces = places;
-        
-        // If there are active filters, apply them
-        if (activeFilters.length > 0) {
-            console.log('Active filters:', activeFilters);
-            filteredPlaces = places.filter(place => {
-                const matches = activeFilters.includes(place.type);
-                console.log(`Place ${place.name} (${place.type}) matches filter: ${matches}`);
-                return matches;
-            });
-        }
-        
-        console.log(`Filtered places: ${filteredPlaces.length}`);
-        
-        // Add markers for filtered places
-        filteredPlaces.forEach(place => {
-            const markerColor = getMarkerColor(place);
-            const lat = place.location.lat;
-            const lng = place.location.lng;
-            
-            const marker = L.marker([lat, lng], {
-                icon: L.divIcon({
-                    className: 'custom-marker',
-                    html: `<div style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px ${markerColor};"></div>`,
-                    iconSize: [12, 12],
-                    iconAnchor: [6, 6]
-                })
-            }).addTo(map);
-            
-            // Add popup with place info
-            marker.bindPopup(`
-                <div class="marker-popup">
-                    <h3>${place.name}</h3>
-                    <p>${place.description}</p>
-                    ${place.cost ? `<p class="cost"><strong>Cost:</strong> ${place.cost}</p>` : ''}
-                    ${place.amenities && place.amenities.length > 0 ? `<p class="amenities"><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
-                    ${place.tags && place.tags.length > 0 ? `
-                        <div class="tags">
-                            ${place.tags.map(tag => `
-                                <span class="tag">${tag}</span>
-                            `).join('')}
-                        </div>
-                    ` : ''}
-                    <button onclick="window.handlePlaceSelect('${place.id}')">View Details</button>
-                </div>
-            `);
-            
-            markers.push(marker);
-        });
-        
-        // Update the directory
-        renderDirectory(filteredPlaces);
-        
-        // Update the results count
-        updateResultsCount(filteredPlaces.length);
+        // Set the global places array
+        places = transformedData.length > 0 ? transformedData : getSampleData(location);
         
         // If a location is provided, center the map there
         if (location && location.lat && location.lng) {
             map.setView([location.lat, location.lng], 13);
         } else {
-            // Otherwise, fit the map to show all markers
-            if (markers.length > 0) {
-                const group = L.featureGroup(markers);
-                map.fitBounds(group.getBounds().pad(0.1));
-            }
+            // Otherwise, fit the map to show all points
+            const allPoints = L.featureGroup(places.map(place => 
+                L.marker([place.location.lat, place.location.lng])
+            ));
+            map.fitBounds(allPoints.getBounds().pad(0.1));
         }
+
+        // Update visible points based on current viewport
+        updateVisiblePoints();
     } catch (error) {
         console.error('Error loading data:', error);
         if (directoryContainer) {
@@ -1238,4 +1177,69 @@ function filterPlaces(places) {
     
     console.log('Filtered places:', filteredPlaces);
     return filteredPlaces;
+}
+
+// Function to update visible points based on map viewport
+function updateVisiblePoints() {
+    if (!places || places.length === 0) return;
+
+    const bounds = map.getBounds();
+    console.log('Updating visible points for bounds:', bounds);
+
+    // Clear existing markers
+    markers.forEach(marker => marker.remove());
+    markers = [];
+
+    // Filter places based on current viewport and active filters
+    const visiblePlaces = places.filter(place => {
+        // Check if place is within current bounds
+        const isInBounds = bounds.contains([place.location.lat, place.location.lng]);
+        // Check if place type matches active filters
+        const matchesFilter = activeFilters.includes(place.type);
+        return isInBounds && matchesFilter;
+    });
+
+    console.log(`Found ${visiblePlaces.length} visible places`);
+
+    // Add markers for visible places
+    visiblePlaces.forEach(place => {
+        const markerColor = getMarkerColor(place);
+        const lat = place.location.lat;
+        const lng = place.location.lng;
+        
+        const marker = L.marker([lat, lng], {
+            icon: L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px ${markerColor};"></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            })
+        }).addTo(map);
+        
+        // Add popup with place info
+        marker.bindPopup(`
+            <div class="marker-popup">
+                <h3>${place.name}</h3>
+                <p>${place.description}</p>
+                ${place.cost ? `<p class="cost"><strong>Cost:</strong> ${place.cost}</p>` : ''}
+                ${place.amenities && place.amenities.length > 0 ? `<p class="amenities"><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
+                ${place.tags && place.tags.length > 0 ? `
+                    <div class="tags">
+                        ${place.tags.map(tag => `
+                            <span class="tag">${tag}</span>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                <button onclick="window.handlePlaceSelect('${place.id}')">View Details</button>
+            </div>
+        `);
+        
+        markers.push(marker);
+    });
+
+    // Update the directory with visible places
+    renderDirectory(visiblePlaces);
+    
+    // Update the results count
+    updateResultsCount(visiblePlaces.length);
 } 
