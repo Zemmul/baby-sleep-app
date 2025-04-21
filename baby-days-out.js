@@ -430,9 +430,14 @@ function updateMapMarkers() {
     markers.forEach(marker => marker.remove());
     markers = [];
     
-    // Filter places based on active filters
+    // Get current map bounds
+    const bounds = map.getBounds();
+    
+    // Filter places based on active filters and current bounds
     const filteredPlaces = places.filter(place => {
-        return activeFilters.includes(place.type);
+        const isInBounds = bounds.contains([place.location.lat, place.location.lng]);
+        const matchesFilter = activeFilters.includes(place.type);
+        return isInBounds && matchesFilter;
     });
     
     // Add markers for filtered places
@@ -471,8 +476,11 @@ function updateMapMarkers() {
         markers.push(marker);
     });
     
-    // Update the directory
+    // Update the directory with only visible places
     renderDirectory(filteredPlaces);
+    
+    // Update the results count
+    updateResultsCount(filteredPlaces.length);
 }
 
 // Load data for a location
@@ -1199,7 +1207,7 @@ function updateVisiblePoints() {
         return isInBounds && matchesFilter;
     });
 
-    console.log(`Found ${visiblePlaces.length} visible places`);
+    console.log(`Found ${visiblePlaces.length} visible places out of ${places.length} total places`);
 
     // Add markers for visible places
     visiblePlaces.forEach(place => {
@@ -1240,6 +1248,6 @@ function updateVisiblePoints() {
     // Update the directory with visible places
     renderDirectory(visiblePlaces);
     
-    // Update the results count
+    // Update the results count with visible places count
     updateResultsCount(visiblePlaces.length);
 } 
