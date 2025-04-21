@@ -769,8 +769,10 @@ function renderDirectory(places) {
         });
 
         // Add click event listener to select the place
-        placeCard.addEventListener('click', () => {
-            window.handlePlaceSelect(place.id);
+        placeCard.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            selectPlace(place.id);
         });
         
         gridContainer.appendChild(placeCard);
@@ -828,8 +830,38 @@ function showDetailedView(place) {
         </svg>
         Back to List
     `;
-    backButton.addEventListener('click', () => {
+    backButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         directoryContainer.innerHTML = previousContent;
+        
+        // Reattach event listeners to place cards
+        const placeCards = directoryContainer.querySelectorAll('.place-card');
+        placeCards.forEach(card => {
+            const placeId = card.getAttribute('data-place-id');
+            
+            // Reattach hover listeners
+            card.addEventListener('mouseenter', () => {
+                const markerElement = document.querySelector(`.marker-${placeId}`);
+                if (markerElement) {
+                    markerElement.classList.add('marker-highlight');
+                }
+            });
+
+            card.addEventListener('mouseleave', () => {
+                const markerElement = document.querySelector(`.marker-${placeId}`);
+                if (markerElement) {
+                    markerElement.classList.remove('marker-highlight');
+                }
+            });
+
+            // Reattach click listener
+            card.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                selectPlace(placeId);
+            });
+        });
     });
     
     // Format the content
@@ -885,7 +917,7 @@ function showDetailedView(place) {
     contentDiv.innerHTML = content;
     detailedContent.appendChild(contentDiv);
     
-    // Replace directory content with detailed view
+    // Clear the container and add the detailed view
     directoryContainer.innerHTML = '';
     directoryContainer.appendChild(detailedContent);
 }
