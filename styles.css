@@ -2509,6 +2509,19 @@ input:checked + .toggle-slider:before {
     box-shadow: 0 0 0 2px currentColor;
     transition: all 0.3s ease;
     transform-origin: center center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Custom marker container */
+.custom-marker {
+    position: relative;
+    width: 20px !important;
+    height: 20px !important;
+    margin-left: -10px !important;
+    margin-top: -10px !important;
 }
 
 /* Highlighted marker styles */
@@ -2521,15 +2534,15 @@ input:checked + .toggle-slider:before {
 /* Pulse animation */
 @keyframes pulse {
     0% {
-        transform: scale(1);
+        transform: translate(-50%, -50%) scale(1);
         opacity: 1;
     }
     50% {
-        transform: scale(1.3);
+        transform: translate(-50%, -50%) scale(1.3);
         opacity: 0.7;
     }
     100% {
-        transform: scale(1);
+        transform: translate(-50%, -50%) scale(1);
         opacity: 1;
     }
 }
