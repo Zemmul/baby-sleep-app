@@ -456,7 +456,7 @@ function updateMapMarkers() {
                         `).join('')}
                     </div>
                 ` : ''}
-                <button onclick="selectPlace('${place.id}')">View Details</button>
+                <button onclick="window.handlePlaceSelect('${place.id}')">View Details</button>
             </div>
         `);
         
@@ -603,7 +603,7 @@ async function loadData(location = MELBOURNE_COORDS) {
                             `).join('')}
                         </div>
                     ` : ''}
-                    <button onclick="selectPlace('${place.id}')">View Details</button>
+                    <button onclick="window.handlePlaceSelect('${place.id}')">View Details</button>
                 </div>
             `);
             
@@ -695,7 +695,7 @@ function renderDirectory(places) {
                     `).join('')}
                 </div>
             ` : ''}
-            <button class="view-details" onclick="selectPlace('${place.id}')">View on Map</button>
+            <button class="view-details" onclick="window.handlePlaceSelect('${place.id}')">View on Map</button>
         `;
         
         placeCard.innerHTML = content;
@@ -734,28 +734,39 @@ function deg2rad(deg) {
     return deg * (Math.PI/180);
 }
 
-// Select a place and show its details
+// Function to select a place
 function selectPlace(id) {
+    console.log('Selecting place:', id);
     const place = places.find(p => p.id === id);
-    if (!place) return;
+    if (!place) {
+        console.error('Place not found:', id);
+        return;
+    }
     
-    // Center the map on the place
-    const lat = place.location ? place.location.lat : (place.latitude || place.lat);
-    const lng = place.location ? place.location.lng : (place.longitude || place.lng);
-    map.setView([lat, lng], 16);
+    // Center map on the selected place
+    map.setView([place.location.lat, place.location.lng], 16);
     
-    // Find the marker for this place
+    // Find and open the marker popup
     const marker = markers.find(m => {
-        const markerLat = m.getLatLng().lat;
-        const markerLng = m.getLatLng().lng;
-        return markerLat === lat && markerLng === lng;
+        const popupContent = m.getPopup().getContent();
+        return popupContent.includes(id);
     });
     
-    // Open the popup
     if (marker) {
         marker.openPopup();
     }
 }
+
+// Make selectPlace available globally
+window.handlePlaceSelect = selectPlace;
+
+// Export functions that need to be accessible from other modules
+export {
+    initMap,
+    loadData,
+    updateActiveFilters,
+    selectPlace
+};
 
 // Get sample facilities data
 function getSampleFacilities(location) {
