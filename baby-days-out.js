@@ -104,11 +104,11 @@ function initMap() {
         fadeAnimation: true, // Smooth fade animation for tiles
     }).setView([MELBOURNE_COORDS.lat, MELBOURNE_COORDS.lng], 13);
     
-    // Add high-performance map tiles with caching and lazy loading
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Add high-performance map tiles with caching and lazy loading (using previous CartoDB style)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 18,
         minZoom: 4,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         crossOrigin: true, // Enable CORS for better caching
         updateWhenIdle: true, // Only load tiles when panning/zooming ends
         updateWhenZooming: false, // Don't update tiles during zoom
@@ -123,7 +123,7 @@ function initMap() {
     // Add attribution control first
     L.control.attribution({
         position: 'bottomright',
-        prefix: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        prefix: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
     }).addTo(map);
     
     // Add custom zoom control second
