@@ -723,17 +723,24 @@ function updateVisiblePoints() {
         markers.push(marker);
     });
 
-    // Update the directory with visible places
-    renderDirectory(visiblePlaces);
-    
-    // Update the results count with visible places count
-    updateResultsCount(visiblePlaces.length);
+    // Only update directory if we're not in detailed view
+    const url = new URL(window.location);
+    if (!url.searchParams.get('place')) {
+        renderDirectory(visiblePlaces);
+        updateResultsCount(visiblePlaces.length);
+    }
 }
 
 // Function to render the directory
 function renderDirectory(places) {
     if (!directoryContainer) {
         console.error('Directory container not found');
+        return;
+    }
+    
+    // Don't render if we're showing a detailed view (check URL)
+    const url = new URL(window.location);
+    if (url.searchParams.get('place')) {
         return;
     }
     
@@ -795,7 +802,8 @@ function renderDirectory(places) {
         placeCard.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            selectPlace(place.id);
+            const placeId = place.id;
+            selectPlace(placeId);
         });
         
         gridContainer.appendChild(placeCard);
