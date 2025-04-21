@@ -58,10 +58,11 @@ export async function fetchPointsInBounds(minLat, maxLat, minLng, maxLng) {
   try {
     console.log(`Fetching points in bounds: lat(${minLat} to ${maxLat}), lng(${minLng} to ${maxLng})`);
     
-    // Fetch all points and filter in memory to avoid floating point comparison issues
+    // First fetch all points
     const { data, error } = await supabase
       .from('points')
       .select('*')
+      .eq('submission_status', 'approved')  // Only get approved points
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -69,16 +70,28 @@ export async function fetchPointsInBounds(minLat, maxLat, minLng, maxLng) {
       throw error;
     }
 
+    console.log('Raw data from Supabase:', data);
+
     // Filter points within bounds
     const filteredData = data.filter(point => {
-      const lat = parseFloat(point.latitude);
-      const lng = parseFloat(point.longitude);
+      // Parse coordinates, handling both string and number types
+      const lat = typeof point.latitude === 'string' ? parseFloat(point.latitude) : point.latitude;
+      const lng = typeof point.longitude === 'string' ? parseFloat(point.longitude) : point.longitude;
+      
+      // Debug log for each point
+      console.log(`Checking point ${point.title}:`, {
+        lat, lng,
+        isInBounds: !isNaN(lat) && !isNaN(lng) &&
+                   lat >= minLat && lat <= maxLat &&
+                   lng >= minLng && lng <= maxLng
+      });
+
       return !isNaN(lat) && !isNaN(lng) &&
              lat >= minLat && lat <= maxLat &&
              lng >= minLng && lng <= maxLng;
     });
     
-    console.log(`Fetched ${filteredData.length} points in bounds from Supabase`);
+    console.log(`Fetched ${data.length} total points, ${filteredData.length} in bounds from Supabase`);
     return filteredData;
   } catch (error) {
     console.error('Error fetching points in bounds:', error);
