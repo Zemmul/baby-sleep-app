@@ -58,53 +58,28 @@ export async function fetchPointsInBounds(minLat, maxLat, minLng, maxLng) {
   try {
     console.log(`Fetching points in bounds: lat(${minLat} to ${maxLat}), lng(${minLng} to ${maxLng})`);
     
-    // First, check the table structure to determine the correct column names
-    const { data: sampleData, error: sampleError } = await supabase
-      .from('points')
-      .select('*')
-      .limit(1);
-    
-    if (sampleError) {
-      console.error('Error fetching sample data:', sampleError);
-      throw sampleError;
-    }
-    
-    if (!sampleData || sampleData.length === 0) {
-      console.log('No data in the points table');
-      return [];
-    }
-    
-    // Determine the correct column names
-    const sample = sampleData[0];
-    const latColumn = sample.hasOwnProperty('latitude') ? 'latitude' : 
-                      sample.hasOwnProperty('lat') ? 'lat' : null;
-    const lngColumn = sample.hasOwnProperty('longitude') ? 'longitude' : 
-                      sample.hasOwnProperty('lng') ? 'lng' : null;
-    
-    console.log(`Using column names: ${latColumn} for latitude, ${lngColumn} for longitude`);
-    
-    if (!latColumn || !lngColumn) {
-      console.error('Could not determine latitude and longitude column names');
-      return [];
-    }
-    
-    // Now fetch the data with the correct column names
+    // Fetch all points and filter in memory to avoid floating point comparison issues
     const { data, error } = await supabase
       .from('points')
       .select('*')
-      .gte(latColumn, minLat)
-      .lte(latColumn, maxLat)
-      .gte(lngColumn, minLng)
-      .lte(lngColumn, maxLng)
       .order('created_at', { ascending: false });
     
     if (error) {
       console.error('Error in fetchPointsInBounds:', error);
       throw error;
     }
+
+    // Filter points within bounds
+    const filteredData = data.filter(point => {
+      const lat = parseFloat(point.latitude);
+      const lng = parseFloat(point.longitude);
+      return !isNaN(lat) && !isNaN(lng) &&
+             lat >= minLat && lat <= maxLat &&
+             lng >= minLng && lng <= maxLng;
+    });
     
-    console.log(`Fetched ${data ? data.length : 0} points in bounds from Supabase`);
-    return data;
+    console.log(`Fetched ${filteredData.length} points in bounds from Supabase`);
+    return filteredData;
   } catch (error) {
     console.error('Error fetching points in bounds:', error);
     return [];
