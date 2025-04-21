@@ -850,10 +850,21 @@ function showDetailedView(place) {
     url.searchParams.set('place', place.id);
     window.history.pushState({}, '', url);
     
-    // Hide the search bar
+    // Hide the search bar and tabs
     const locationSearch = document.querySelector('.location-search');
+    const sidebarTabs = document.querySelector('.sidebar-tabs');
+    const filterTab = document.querySelector('#filter-tab');
+    
     if (locationSearch) {
         locationSearch.style.display = 'none';
+    }
+    
+    if (sidebarTabs) {
+        sidebarTabs.style.display = 'none';
+    }
+    
+    if (filterTab) {
+        filterTab.style.display = 'none';
     }
     
     // Create detailed view content
@@ -878,9 +889,17 @@ function showDetailedView(place) {
         url.searchParams.delete('place');
         window.history.pushState({}, '', url);
         
-        // Show the search bar again
+        // Show the search bar and tabs again
         if (locationSearch) {
             locationSearch.style.display = 'block';
+        }
+        
+        if (sidebarTabs) {
+            sidebarTabs.style.display = 'flex';
+        }
+        
+        if (filterTab) {
+            filterTab.style.display = 'none'; // Keep filter tab hidden by default
         }
         
         // Show directory listing
