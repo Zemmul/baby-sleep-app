@@ -850,6 +850,12 @@ function showDetailedView(place) {
     url.searchParams.set('place', place.id);
     window.history.pushState({}, '', url);
     
+    // Hide the search bar
+    const locationSearch = document.querySelector('.location-search');
+    if (locationSearch) {
+        locationSearch.style.display = 'none';
+    }
+    
     // Create detailed view content
     const detailedContent = document.createElement('div');
     detailedContent.className = 'detailed-view';
@@ -871,6 +877,11 @@ function showDetailedView(place) {
         const url = new URL(window.location);
         url.searchParams.delete('place');
         window.history.pushState({}, '', url);
+        
+        // Show the search bar again
+        if (locationSearch) {
+            locationSearch.style.display = 'block';
+        }
         
         // Show directory listing
         showDirectoryListing();
@@ -938,6 +949,12 @@ function showDetailedView(place) {
 
 // Function to show directory listing
 function showDirectoryListing() {
+    // Show the search bar
+    const locationSearch = document.querySelector('.location-search');
+    if (locationSearch) {
+        locationSearch.style.display = 'block';
+    }
+    
     // Get current viewport bounds
     const bounds = map.getBounds();
     
