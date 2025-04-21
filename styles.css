@@ -2413,6 +2413,10 @@ input:checked + .toggle-slider:before {
     overflow-y: auto;
 }
 
+.back-button-container {
+    margin-bottom: 16px;
+}
+
 .detailed-view .back-button {
     display: flex;
     align-items: center;
@@ -2423,7 +2427,7 @@ input:checked + .toggle-slider:before {
     font-size: 14px;
     padding: 8px 0;
     cursor: pointer;
-    margin-bottom: 16px;
+    transition: color 0.2s ease;
 }
 
 .detailed-view .back-button:hover {
