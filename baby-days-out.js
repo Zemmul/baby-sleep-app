@@ -182,8 +182,28 @@ function initMap() {
     // Update active filters based on checkbox states
     updateActiveFilters();
     
-    // Load initial data
-    loadData();
+    // Check URL for place ID on page load
+    const url = new URL(window.location);
+    const placeId = url.searchParams.get('place');
+    if (placeId) {
+        // Load data first, then show the place
+        loadData().then(() => {
+            selectPlace(placeId);
+        });
+    } else {
+        loadData();
+    }
+    
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', () => {
+        const url = new URL(window.location);
+        const placeId = url.searchParams.get('place');
+        if (placeId) {
+            selectPlace(placeId);
+        } else {
+            showDirectoryListing();
+        }
+    });
     
     // Setup event listeners
     setupEventListeners();
@@ -606,11 +626,14 @@ async function loadData(location = MELBOURNE_COORDS) {
 
         // Update visible points based on current viewport
         updateVisiblePoints();
+        
+        return places;
     } catch (error) {
         console.error('Error loading data:', error);
         if (directoryContainer) {
             directoryContainer.innerHTML = '<div class="error">Error loading data. Please try again.</div>';
         }
+        return [];
     }
 }
 
@@ -814,8 +837,10 @@ function deg2rad(deg) {
 function showDetailedView(place) {
     if (!directoryContainer) return;
     
-    // Store current view content for back button
-    const previousContent = directoryContainer.innerHTML;
+    // Update URL with place ID
+    const url = new URL(window.location);
+    url.searchParams.set('place', place.id);
+    window.history.pushState({}, '', url);
     
     // Create detailed view content
     const detailedContent = document.createElement('div');
@@ -833,35 +858,14 @@ function showDetailedView(place) {
     backButton.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        directoryContainer.innerHTML = previousContent;
         
-        // Reattach event listeners to place cards
-        const placeCards = directoryContainer.querySelectorAll('.place-card');
-        placeCards.forEach(card => {
-            const placeId = card.getAttribute('data-place-id');
-            
-            // Reattach hover listeners
-            card.addEventListener('mouseenter', () => {
-                const markerElement = document.querySelector(`.marker-${placeId}`);
-                if (markerElement) {
-                    markerElement.classList.add('marker-highlight');
-                }
-            });
-
-            card.addEventListener('mouseleave', () => {
-                const markerElement = document.querySelector(`.marker-${placeId}`);
-                if (markerElement) {
-                    markerElement.classList.remove('marker-highlight');
-                }
-            });
-
-            // Reattach click listener
-            card.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                selectPlace(placeId);
-            });
-        });
+        // Remove place ID from URL
+        const url = new URL(window.location);
+        url.searchParams.delete('place');
+        window.history.pushState({}, '', url);
+        
+        // Show directory listing
+        showDirectoryListing();
     });
     
     // Format the content
@@ -920,6 +924,22 @@ function showDetailedView(place) {
     // Clear the container and add the detailed view
     directoryContainer.innerHTML = '';
     directoryContainer.appendChild(detailedContent);
+}
+
+// Function to show directory listing
+function showDirectoryListing() {
+    // Get current viewport bounds
+    const bounds = map.getBounds();
+    
+    // Filter places based on current viewport and active filters
+    const visiblePlaces = places.filter(place => {
+        const isInBounds = bounds.contains([place.location.lat, place.location.lng]);
+        const matchesFilter = activeFilters.includes(place.type);
+        return isInBounds && matchesFilter;
+    });
+    
+    // Render the directory with visible places
+    renderDirectory(visiblePlaces);
 }
 
 // Function to select a place
