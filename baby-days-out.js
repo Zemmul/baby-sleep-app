@@ -473,7 +473,7 @@ async function loadData(location = MELBOURNE_COORDS) {
     
     // Show loading state
     if (directoryContainer) {
-        directoryContainer.innerHTML = '<div class="loading">Finding nearby places...</div>';
+        directoryContainer.innerHTML = '<div class="loading">Finding places...</div>';
     }
     
     // Clear existing markers
@@ -481,33 +481,11 @@ async function loadData(location = MELBOURNE_COORDS) {
     markers = [];
     
     try {
-        // Fetch data from Supabase
-        let supabaseData = [];
-        
-        // If we have a location, fetch points within a bounding box
-        if (location && location.lat && location.lng) {
-            // Calculate a bounding box (approximately 10km radius)
-            const latOffset = 0.1; // Roughly 11km
-            const lngOffset = 0.1; // Roughly 11km at the equator
-            
-            const minLat = location.lat - latOffset;
-            const maxLat = location.lat + latOffset;
-            const minLng = location.lng - lngOffset;
-            const maxLng = location.lng + lngOffset;
-            
-            console.log('Fetching points in bounds:', { minLat, maxLat, minLng, maxLng });
-            supabaseData = await fetchPointsInBounds(minLat, maxLat, minLng, maxLng);
-            console.log('Supabase data length:', supabaseData.length);
-            console.log('Supabase data sample:', supabaseData.slice(0, 2));
-        } else {
-            // If no location, fetch all points
-            console.log('Fetching all points');
-            supabaseData = await fetchAllPoints();
-            console.log('Supabase data length:', supabaseData.length);
-            console.log('Supabase data sample:', supabaseData.slice(0, 2));
-        }
-        
-        console.log('Supabase data retrieved:', supabaseData);
+        // Fetch all points from Supabase
+        console.log('Fetching all points in Victoria');
+        const supabaseData = await fetchAllPoints();
+        console.log('Supabase data length:', supabaseData.length);
+        console.log('Supabase data:', supabaseData);
         
         // Transform Supabase data to match our expected format
         const transformedData = supabaseData.map(point => {
@@ -546,7 +524,7 @@ async function loadData(location = MELBOURNE_COORDS) {
                 id: point.id,
                 name: point.title || 'Untitled',
                 description: point.description || '',
-                type: point.type || 'parent_facility', // Default to parent_facility if type is not set
+                type: point.type || 'parent_facility',
                 location: {
                     lat: lat,
                     lng: lng
@@ -637,6 +615,17 @@ async function loadData(location = MELBOURNE_COORDS) {
         
         // Update the results count
         updateResultsCount(filteredPlaces.length);
+        
+        // If a location is provided, center the map there
+        if (location && location.lat && location.lng) {
+            map.setView([location.lat, location.lng], 13);
+        } else {
+            // Otherwise, fit the map to show all markers
+            if (markers.length > 0) {
+                const group = L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
     } catch (error) {
         console.error('Error loading data:', error);
         if (directoryContainer) {

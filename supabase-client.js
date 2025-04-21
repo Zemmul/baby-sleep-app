@@ -15,6 +15,7 @@ export async function fetchAllPoints() {
     const { data, error } = await supabase
       .from('points')
       .select('*')
+      .eq('submission_status', 'approved')  // Only get approved points
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -23,7 +24,7 @@ export async function fetchAllPoints() {
     }
     
     console.log(`Fetched ${data ? data.length : 0} points from Supabase`);
-    return data;
+    return data || [];
   } catch (error) {
     console.error('Error fetching points:', error);
     return [];
