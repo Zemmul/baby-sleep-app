@@ -729,17 +729,17 @@ function renderDirectory(places) {
     places.forEach(place => {
         const placeCard = document.createElement('div');
         placeCard.className = 'place-card';
-        placeCard.setAttribute('data-place-id', place.id); // Add place ID as data attribute
+        placeCard.setAttribute('data-place-id', place.id);
         
-        // Create the card content
+        // Create the card content with title case for the header
         const content = `
             <div class="place-header">
-                <h3>${place.name}</h3>
+                <h3 style="text-transform: capitalize">${place.name}</h3>
                 ${place.distance ? `<span class="distance">${place.distance.toFixed(1)}km</span>` : ''}
             </div>
             <p class="description">${place.description || ''}</p>
-            ${place.cost ? `<p class="cost"><strong>Cost:</strong> ${place.cost}</p>` : ''}
-            ${place.amenities && place.amenities.length > 0 ? `<p class="amenities"><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
+            ${place.cost ? `<p class="description">${place.cost}</p>` : ''}
+            ${place.amenities && place.amenities.length > 0 ? `<p class="description">Amenities: ${place.amenities.join(', ')}</p>` : ''}
             ${place.tags && place.tags.length > 0 ? `
                 <div class="tags">
                     ${place.tags.map(tag => `
@@ -747,7 +747,6 @@ function renderDirectory(places) {
                     `).join('')}
                 </div>
             ` : ''}
-            <button class="view-details" onclick="window.handlePlaceSelect('${place.id}')">View on Map</button>
         `;
         
         placeCard.innerHTML = content;
@@ -767,6 +766,11 @@ function renderDirectory(places) {
             if (markerElement) {
                 markerElement.classList.remove('marker-highlight');
             }
+        });
+
+        // Add click event listener to select the place
+        placeCard.addEventListener('click', () => {
+            window.handlePlaceSelect(place.id);
         });
         
         gridContainer.appendChild(placeCard);
