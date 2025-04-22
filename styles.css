@@ -2487,14 +2487,14 @@ input:checked + .toggle-slider:before {
 }
 
 .detailed-content {
-    color: #666;
+    color: #9D8572;
 }
 
 .detailed-content .description {
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1.5;
     margin-bottom: 24px;
-    color: #333;
+    color: #9D8572;
 }
 
 .detail-item {
@@ -2503,7 +2503,7 @@ input:checked + .toggle-slider:before {
 }
 
 .detail-item strong {
-    color: #333;
+    color: #9D8572
 }
 
 .detail-item a {
