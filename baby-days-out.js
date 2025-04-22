@@ -867,12 +867,6 @@ function showDetailedView(place) {
         filterTab.style.display = 'none';
     }
     
-    // Add pulsing effect to the marker
-    const markerElement = document.querySelector(`.marker-${place.id}`);
-    if (markerElement) {
-        markerElement.classList.add('marker-pulse');
-    }
-    
     // Create detailed view content
     const detailedContent = document.createElement('div');
     detailedContent.className = 'detailed-view';
@@ -889,11 +883,6 @@ function showDetailedView(place) {
     backButton.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        
-        // Remove pulsing effect from the marker
-        if (markerElement) {
-            markerElement.classList.remove('marker-pulse');
-        }
         
         // Remove place ID from URL
         const url = new URL(window.location);
