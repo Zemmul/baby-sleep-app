@@ -166,7 +166,8 @@
 
 /* Detail item styles */
 .detail-item {
-    font-size: 14px;
+    font-size: 0.9em;
+    color: #666;
     margin: 10px 0;
     line-height: 1.4;
 }
