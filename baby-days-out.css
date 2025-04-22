@@ -148,4 +148,30 @@
 .marker-highlight .marker-dot {
     transform: translate(-50%, -50%) scale(1.2);
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8);
+}
+
+/* Back link styles */
+.back-link {
+    display: inline-block;
+    color: #2196F3;
+    text-decoration: none;
+    font-size: 16px;
+    margin-bottom: 15px;
+    cursor: pointer;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+/* Detail item styles */
+.detail-item {
+    font-size: 14px;
+    margin: 10px 0;
+    line-height: 1.4;
+}
+
+.detail-item strong {
+    font-weight: 600;
+    color: #333;
 } 
