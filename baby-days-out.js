@@ -661,24 +661,24 @@ function getMarkerColor(place) {
 
 // Function to create a marker for a place
 function createMarker(place) {
-            const markerColor = getMarkerColor(place);
-            const lat = place.location.lat;
-            const lng = place.location.lng;
-            
-            const marker = L.marker([lat, lng], {
-                icon: L.divIcon({
-            className: `custom-marker marker-${place.id}`, // Add place ID to class
-            html: `<div class="marker-dot" style="background-color: ${markerColor};"></div>`,
-                    iconSize: [12, 12],
-                    iconAnchor: [6, 6]
-                })
-            }).addTo(map);
-            
-            // Add popup with place info
-            marker.bindPopup(`
-                <div class="marker-popup">
-                    <h3>${place.name}</h3>
-                    <p>${place.description}</p>
+    const markerColor = getMarkerColor(place);
+    const lat = place.location.lat;
+    const lng = place.location.lng;
+    
+    const marker = L.marker([lat, lng], {
+        icon: L.divIcon({
+            className: `custom-marker marker-${place.id}`,
+            html: `<div class="marker-dot" style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px ${markerColor};"></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6]
+        })
+    }).addTo(map);
+    
+    // Add popup with place info
+    marker.bindPopup(`
+        <div class="marker-popup">
+            <h3>${place.name}</h3>
+            <p>${place.description}</p>
             ${place.cost ? `<p class="cost"><strong>Cost:</strong> ${place.cost}</p>` : ''}
             ${place.amenities && place.amenities.length > 0 ? `<p class="amenities"><strong>Amenities:</strong> ${place.amenities.join(', ')}</p>` : ''}
             ${place.tags && place.tags.length > 0 ? `
@@ -689,9 +689,9 @@ function createMarker(place) {
                 </div>
             ` : ''}
             <button onclick="window.handlePlaceSelect('${place.id}')">View Details</button>
-                </div>
-            `);
-            
+        </div>
+    `);
+    
     return marker;
 }
 
