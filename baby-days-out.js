@@ -867,6 +867,22 @@ function showDetailedView(place) {
         filterTab.style.display = 'none';
     }
     
+    // Find and add pulse effect to the marker
+    const marker = markers.find(m => {
+        const popupContent = m.getPopup().getContent();
+        return popupContent.includes(place.id);
+    });
+    
+    if (marker) {
+        const markerElement = marker.getElement();
+        if (markerElement) {
+            const markerDot = markerElement.querySelector('.marker-dot');
+            if (markerDot) {
+                markerDot.classList.add('marker-pulse');
+            }
+        }
+    }
+    
     // Create detailed view content
     const detailedContent = document.createElement('div');
     detailedContent.className = 'detailed-view';
@@ -900,6 +916,17 @@ function showDetailedView(place) {
         
         if (filterTab) {
             filterTab.style.display = 'none'; // Keep filter tab hidden by default
+        }
+        
+        // Remove pulse effect from marker
+        if (marker) {
+            const markerElement = marker.getElement();
+            if (markerElement) {
+                const markerDot = markerElement.querySelector('.marker-dot');
+                if (markerDot) {
+                    markerDot.classList.remove('marker-pulse');
+                }
+            }
         }
         
         // Show directory listing
